@@ -1,0 +1,49 @@
+import { toUSD } from "./format";
+import type { AssetClass, Holding } from "./types";
+
+export interface PortfolioTotals {
+  value: number;
+  day: number;
+  dayPct: number;
+  gain: number;
+  gainPct: number;
+  byClass: Partial<Record<AssetClass, number>>;
+  gainByClass: Partial<Record<AssetClass, number>>;
+  dayPctByClass: Partial<Record<AssetClass, number>>;
+}
+
+/** All amounts in USD. */
+export function computeTotals(holdings: Holding[]): PortfolioTotals {
+  let value = 0, prev = 0, cost = 0;
+  const byClass: PortfolioTotals["byClass"] = {};
+  const prevByClass: PortfolioTotals["byClass"] = {};
+  const gainByClass: PortfolioTotals["gainByClass"] = {};
+
+  for (const h of holdings) {
+    const v = toUSD(h.price * h.qty, h.cur);
+    const p = toUSD(h.prev * h.qty, h.cur);
+    value += v;
+    prev += p;
+    cost += toUSD(h.cost * h.qty, h.cur);
+    byClass[h.cls] = (byClass[h.cls] ?? 0) + v;
+    prevByClass[h.cls] = (prevByClass[h.cls] ?? 0) + p;
+    gainByClass[h.cls] = (gainByClass[h.cls] ?? 0) + toUSD((h.price - h.cost) * h.qty, h.cur);
+  }
+
+  const dayPctByClass: PortfolioTotals["dayPctByClass"] = {};
+  for (const k of Object.keys(byClass) as AssetClass[]) {
+    const p = prevByClass[k] ?? 0;
+    dayPctByClass[k] = p ? (((byClass[k] ?? 0) - p) / p) * 100 : 0;
+  }
+
+  return {
+    value,
+    day: value - prev,
+    dayPct: prev ? ((value - prev) / prev) * 100 : 0,
+    gain: value - cost,
+    gainPct: cost ? ((value - cost) / cost) * 100 : 0,
+    byClass,
+    gainByClass,
+    dayPctByClass,
+  };
+}
