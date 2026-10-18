@@ -1,20 +1,20 @@
+import Link from "next/link";
 import { Icon } from "../Icon";
 import { TickerLogo } from "./TickerLogo";
 import { changePct, money, pct, tone } from "@/lib/format";
-import type { Flash, Holding } from "@/lib/types";
+import type { WatchEntry } from "@/lib/usePortfolio";
+import type { DataSource, Flash } from "@/lib/types";
+
+export type WatchItem = WatchEntry & { price: number; prev: number; source: DataSource };
 
 interface Props {
-  items: Holding[];
-  query: string;
+  items: WatchItem[];
   flash: Flash;
   showAlert: boolean;
   onDismissAlert: () => void;
 }
 
-export function WatchlistCard({ items, query, flash, showAlert, onDismissAlert }: Props) {
-  const q = query.trim().toUpperCase();
-  const rows = items.filter((h) => !q || h.sym.includes(q) || h.name.toUpperCase().includes(q));
-
+export function WatchlistCard({ items, flash, showAlert, onDismissAlert }: Props) {
   return (
     <article className="card">
       <div className="card-head">
@@ -27,7 +27,7 @@ export function WatchlistCard({ items, query, flash, showAlert, onDismissAlert }
           <span className="logo dark-logo"><Icon name="bolt" size="sm" /></span>
           <div className="alert-text">
             <div className="row-title">NVDA crossed $135.00</div>
-            <div className="alert-sub">Price alert triggered</div>
+            <div className="alert-sub">Price alert triggered (sample)</div>
           </div>
           <button className="round ok" aria-label="Acknowledge" onClick={onDismissAlert}><Icon name="check" size="sm" /></button>
           <button className="round" aria-label="Dismiss" onClick={onDismissAlert}><Icon name="x" size="sm" /></button>
@@ -35,23 +35,25 @@ export function WatchlistCard({ items, query, flash, showAlert, onDismissAlert }
       )}
 
       <ul className="watch">
-        {rows.length === 0 && <li><div className="row-sub">No matches for “{query}”</div></li>}
-        {rows.map((h) => {
-          const p = changePct(h.price, h.prev);
-          // Keying on the flash direction restarts the CSS animation on each tick
+        {items.length === 0 && <li><div className="row-sub">Search for a stock and tap “Add to Watchlist”.</div></li>}
+        {items.map((h) => {
+          const p = h.prev ? changePct(h.price, h.prev) : 0;
           return (
-            <li key={`${h.sym}-${flash[h.sym] ?? ""}-${h.price}`} className={flash[h.sym] ? `flash-${flash[h.sym]}` : ""}>
-              <TickerLogo sym={h.sym} cur={h.cur} />
-              <div className="meta">
-                <div className="row-title">{h.name}</div>
-                <div className="row-sub">
-                  {h.sym}{h.ex ? ` · ${h.ex}` : ""}{h.source === "sample" ? " · sample" : ""}
+            // Keying on the price restarts the flash animation on each move
+            <li key={`${h.sym}-${h.price}`} className={flash[h.sym] ? `flash-${flash[h.sym]}` : ""}>
+              <Link href={`/quote/${h.sym}`} className="row-link">
+                <TickerLogo sym={h.sym} cur={h.cur} />
+                <div className="meta">
+                  <div className="row-title">{h.name}</div>
+                  <div className="row-sub">
+                    {h.sym}{h.ex ? ` · ${h.ex}` : ""}{h.source === "sample" ? " · sample" : ""}
+                  </div>
                 </div>
-              </div>
-              <div className="num">
-                {money(h.price, h.cur, { native: true })}
-                <div className={`pct ${tone(p)}`}>{pct(p)}</div>
-              </div>
+                <div className="num">
+                  {h.price ? money(h.price, h.cur, { native: true }) : "—"}
+                  <div className={`pct ${tone(p)}`}>{pct(p)}</div>
+                </div>
+              </Link>
             </li>
           );
         })}

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { DataSource } from "./types";
 
 /** JSON response that Vercel's CDN may cache for `maxAge` seconds (shared by all visitors). */
 export function cachedJson(data: unknown, maxAge: number) {
@@ -6,6 +7,9 @@ export function cachedJson(data: unknown, maxAge: number) {
     headers: { "Cache-Control": `public, s-maxage=${maxAge}, stale-while-revalidate=${maxAge * 2}` },
   });
 }
+
+/** Cache live data normally, but sample fallbacks only briefly so a provider hiccup isn't pinned in the CDN. */
+export const ttlFor = (source: DataSource, liveSeconds: number) => (source === "live" ? liveSeconds : 30);
 
 export const badRequest = (message: string) => NextResponse.json({ error: message }, { status: 400 });
 

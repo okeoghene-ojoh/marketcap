@@ -2,15 +2,18 @@
 // Each function picks a provider per symbol and falls back to sample data,
 // labelled `source: "sample"`, so the dashboard keeps working when a key is
 // missing or a provider is down. Swapping providers only touches this folder.
-import { finnhubCompanyNews, finnhubMarketNews, finnhubQuote, finnhubSearch, hasFinnhub } from "./finnhub";
+import {
+  finnhubCompanyNews, finnhubMarketNews, finnhubMetrics, finnhubProfile, finnhubQuote, finnhubSearch, hasFinnhub,
+  type FinnhubMetrics,
+} from "./finnhub";
 import { hasTwelveData, twelveDataHistory } from "./twelvedata";
-import { coingeckoQuotes, CRYPTO_SYMBOLS, isCrypto } from "./coingecko";
+import { coingeckoMarket, coingeckoQuotes, CRYPTO_SYMBOLS, isCrypto } from "./coingecko";
 import { fxRates } from "./fx";
 import {
   NGX_SYMBOLS, SAMPLE_RATES, SYMBOL_NAMES, sampleArticles, sampleMovers, sampleQuote,
 } from "../sample-data";
 import type {
-  Candle, DataSource, HistoryRange, Mover, MoversResponse, NewsResponse, Quote, Rates, SearchResult,
+  Candle, DataSource, HistoryRange, Mover, MoversResponse, NewsResponse, Overview, Quote, Rates, SearchResult,
 } from "../types";
 
 const warn = (what: string, err: unknown) =>
@@ -110,6 +113,85 @@ export async function getRates(): Promise<{ rates: Rates; source: DataSource }> 
     warn("fx rates", e);
     return { rates: SAMPLE_RATES, source: "sample" };
   }
+}
+
+/** "NASDAQ NMS - GLOBAL MARKET" → "NASDAQ", "NEW YORK STOCK EXCHANGE, INC." → "NYSE" */
+function shortExchange(name?: string) {
+  if (!name) return undefined;
+  if (/NASDAQ/i.test(name)) return "NASDAQ";
+  if (/NEW YORK STOCK EXCHANGE|NYSE/i.test(name)) return "NYSE";
+  return name.replace(/,? INC\.?$/i, "");
+}
+
+const firstOf = (m: FinnhubMetrics, keys: string[]) => keys.map((k) => m[k]).find((v) => typeof v === "number");
+
+/** Name, company facts and key stats for the quote page, or null if the symbol is unknown. */
+export async function getOverview(symbol: string): Promise<Overview | null> {
+  const quote = (await getQuotes([symbol]))[symbol];
+  if (!quote) return null;
+
+  const base = {
+    symbol,
+    name: SYMBOL_NAMES[symbol] ?? symbol,
+    currency: "USD" as const,
+    quote,
+    source: quote.source,
+    stats: { open: quote.open, high: quote.high, low: quote.low, prevClose: quote.prev },
+  };
+
+  if (isNGX(symbol)) {
+    return { ...base, kind: "ngx", exchange: "NGX", currency: "NGN" };
+  }
+
+  if (isCrypto(symbol)) {
+    const coin = await coingeckoMarket(symbol).catch((e) => { warn(`coin ${symbol}`, e); return null; });
+    return {
+      ...base,
+      kind: "crypto",
+      exchange: "Crypto",
+      name: coin?.name ?? base.name,
+      logo: coin?.image,
+      stats: {
+        ...base.stats,
+        high: coin?.high_24h,
+        low: coin?.low_24h,
+        marketCap: coin?.market_cap,
+        avgVolume: coin?.total_volume,
+        high52: coin?.ath, // all-time high stands in for the 52-week high
+      },
+    };
+  }
+
+  if (!hasFinnhub()) return { ...base, kind: "stock" };
+
+  const [profile, metrics] = await Promise.all([
+    finnhubProfile(symbol).catch((e) => { warn(`profile ${symbol}`, e); return null; }),
+    finnhubMetrics(symbol).catch((e) => { warn(`metrics ${symbol}`, e); return {} as FinnhubMetrics; }),
+  ]);
+  const avgVolM = firstOf(metrics, ["10DayAverageTradingVolume", "3MonthAverageTradingVolume"]);
+  const capM = profile?.marketCapitalization ?? firstOf(metrics, ["marketCapitalization"]);
+
+  return {
+    ...base,
+    kind: "stock",
+    name: profile?.name ?? base.name,
+    exchange: shortExchange(profile?.exchange),
+    logo: profile?.logo || undefined,
+    website: profile?.weburl || undefined,
+    industry: profile?.finnhubIndustry || undefined,
+    country: profile?.country || undefined,
+    ipo: profile?.ipo || undefined,
+    stats: {
+      ...base.stats,
+      marketCap: capM ? capM * 1e6 : undefined,
+      pe: firstOf(metrics, ["peTTM", "peBasicExclExtraTTM", "peExclExtraTTM", "peNormalizedAnnual"]),
+      high52: firstOf(metrics, ["52WeekHigh"]),
+      low52: firstOf(metrics, ["52WeekLow"]),
+      dividendYield: firstOf(metrics, ["currentDividendYieldTTM", "dividendYieldIndicatedAnnual"]),
+      avgVolume: avgVolM ? avgVolM * 1e6 : undefined,
+      beta: firstOf(metrics, ["beta"]),
+    },
+  };
 }
 
 const MOVER_UNIVERSE = [

@@ -1,61 +1,53 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Icon } from "../Icon";
+import { SearchBox } from "../SearchBox";
 import { ThemeToggle } from "../ThemeToggle";
 
-const TABS = ["Overview", "Markets", "Portfolio", "News"];
+// Only Overview has a page so far; the rest arrive in later phases.
+const TABS = [
+  { label: "Overview", href: "/" },
+  { label: "Markets", href: null },
+  { label: "Portfolio", href: null },
+  { label: "News", href: null },
+];
 
 interface Props {
   name: string;
-  query: string;
-  onQuery: (q: string) => void;
-  notifCount: number;
+  notifCount?: number;
 }
 
-export function Header({ name, query, onQuery, notifCount }: Props) {
-  const [tab, setTab] = useState("Overview");
-  const [searchOpen, setSearchOpen] = useState(false);
+export function Header({ name, notifCount = 0 }: Props) {
+  const pathname = usePathname();
 
   return (
     <header className="topbar">
-      <div className="hello">
+      <Link href="/" className="hello">
         <div className="avatar" aria-hidden="true">{name[0]}</div>
         <div>
           <div className="brand">Marketcap</div>
           <h1>Hello, {name}</h1>
         </div>
-      </div>
+      </Link>
 
       <nav className="tabs" aria-label="Main">
-        {TABS.map((t) => (
-          <button key={t} className={`tab ${t === tab ? "active" : ""}`} onClick={() => setTab(t)}>
-            {t}
-          </button>
-        ))}
+        {TABS.map((t) =>
+          t.href ? (
+            <Link key={t.label} href={t.href} className={`tab ${pathname === t.href ? "active" : ""}`}>
+              {t.label}
+            </Link>
+          ) : (
+            <button key={t.label} className="tab" title="Coming soon" disabled>
+              {t.label}
+            </button>
+          )
+        )}
       </nav>
 
       <div className="actions">
-        <div className={`search ${searchOpen ? "open" : ""}`}>
-          <input
-            type="search"
-            placeholder="Search tickers…"
-            aria-label="Search tickers"
-            value={query}
-            onChange={(e) => onQuery(e.target.value)}
-            ref={(el) => { if (searchOpen) el?.focus(); }}
-          />
-          <button
-            className="icon-btn"
-            aria-label="Search"
-            onClick={() => {
-              if (searchOpen) onQuery("");
-              setSearchOpen(!searchOpen);
-            }}
-          >
-            <Icon name="search" />
-          </button>
-        </div>
+        <SearchBox />
         <ThemeToggle />
         <button className="pill-btn" aria-label="Notifications">
           <span className="bell">

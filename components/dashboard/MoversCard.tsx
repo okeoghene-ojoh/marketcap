@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Icon } from "../Icon";
 import { TickerLogo } from "./TickerLogo";
 import { money, pct, tone } from "@/lib/format";
@@ -27,12 +28,14 @@ export function MoversCard({ data }: { data: MoversResponse | null }) {
         {data && list.length === 0 && <li><div className="row-sub">Nothing {dir === "up" ? "up" : "down"} right now</div></li>}
         {list.map((m) => (
           <li key={m.sym}>
-            <TickerLogo sym={m.sym} cur={m.cur} />
-            <div>
-              <div className="row-title">{m.sym}</div>
-              <div className="row-sub">{m.name} · {money(m.price, m.cur ?? "USD", { native: true })}</div>
-            </div>
-            <span className={`pct-pill ${tone(m.pct)}`}>{pct(m.pct)}</span>
+            <Link href={`/quote/${m.sym}`} className="row-link">
+              <TickerLogo sym={m.sym} cur={m.cur} />
+              <div className="meta">
+                <div className="row-title">{m.sym}</div>
+                <div className="row-sub">{m.name} · {money(m.price, m.cur ?? "USD", { native: true })}</div>
+              </div>
+              <span className={`pct-pill ${tone(m.pct)}`}>{pct(m.pct)}</span>
+            </Link>
           </li>
         ))}
       </ul>

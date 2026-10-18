@@ -1,10 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CRYPTO_IDS, INDEX_SYMBOLS, SAMPLE_RATES, initialHoldings, sampleQuote, watchSyms } from "./sample-data";
-import type {
-  DataSource, Flash, Holding, IndexKey, MoversResponse, NewsResponse, Quote, Rates,
-} from "./types";
+import { INDEX_SYMBOLS, SAMPLE_RATES } from "./sample-data";
+import type { DataSource, Flash, IndexKey, MoversResponse, NewsResponse, Quote, Rates } from "./types";
 
 const QUOTES_MS = 15_000;
 const MOVERS_MS = 60_000;
@@ -13,7 +11,7 @@ const FX_MS = 60 * 60_000;
 
 const INDEX_KEYS = Object.keys(INDEX_SYMBOLS) as IndexKey[];
 
-async function getJSON<T>(path: string): Promise<T | null> {
+export async function getJSON<T>(path: string): Promise<T | null> {
   try {
     const res = await fetch(path);
     return res.ok ? ((await res.json()) as T) : null;
@@ -23,8 +21,9 @@ async function getJSON<T>(path: string): Promise<T | null> {
 }
 
 /** Run `fn` now and every `ms`, skipping while the tab is hidden (saves API quota). */
-function usePoll(fn: () => void, ms: number) {
+export function usePoll(fn: () => void, ms: number, enabled = true) {
   useEffect(() => {
+    if (!enabled) return;
     fn();
     const id = setInterval(() => document.visibilityState === "visible" && fn(), ms);
     const onVisible = () => document.visibilityState === "visible" && fn();
@@ -33,80 +32,44 @@ function usePoll(fn: () => void, ms: number) {
       clearInterval(id);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [fn, ms]);
+  }, [fn, ms, enabled]);
 }
 
 /**
- * Market data for the dashboard, from our /api routes (which hide the API keys
- * and fall back to labelled sample data), plus a live BTC price streamed from
- * Binance when it's reachable.
+ * Live quotes for `symbols`, refreshed every 15s from /api/quotes, with BTC
+ * streamed from Binance when reachable. `flash` marks symbols whose price just moved.
  */
-export function useMarketData() {
-  const [holdings, setHoldings] = useState<Holding[]>(initialHoldings);
-  const [indices, setIndices] = useState<Record<IndexKey, Quote | null>>(() =>
-    Object.fromEntries(INDEX_KEYS.map((k) => [k, sampleQuote(INDEX_SYMBOLS[k].sym)])) as Record<IndexKey, Quote | null>
-  );
-  const [rates, setRates] = useState<{ rates: Rates; source: DataSource }>({ rates: SAMPLE_RATES, source: "sample" });
-  const [news, setNews] = useState<NewsResponse | null>(null);
-  const [movers, setMovers] = useState<MoversResponse | null>(null);
+export function useQuotes(symbols: string[]) {
+  const [quotes, setQuotes] = useState<Record<string, Quote>>({});
   const [flash, setFlash] = useState<Flash>({});
-
-  const holdingsRef = useRef(holdings);
-  holdingsRef.current = holdings;
+  const quotesRef = useRef(quotes);
+  quotesRef.current = quotes;
   const liveBTC = useRef(false);
 
-  // Re-subscribe when the set of symbols changes (e.g. a holding is added)
-  const symbolKey = holdings.filter((h) => h.cls !== "cash").map((h) => h.sym).join(",");
+  const key = [...new Set(symbols)].sort().join(",");
 
-  const loadQuotes = useCallback(async () => {
-    const symbols = [...symbolKey.split(","), ...INDEX_KEYS.map((k) => INDEX_SYMBOLS[k].sym)].filter(Boolean);
-    const data = await getJSON<{ quotes: Record<string, Quote> }>(`/api/quotes?symbols=${symbols.join(",")}`);
+  const load = useCallback(async () => {
+    if (!key) return;
+    const data = await getJSON<{ quotes: Record<string, Quote> }>(`/api/quotes?symbols=${key}`);
     if (!data) return;
-    const { quotes } = data;
-
     const nextFlash: Flash = {};
-    for (const h of holdingsRef.current) {
-      const q = quotes[h.sym];
-      if (q && watchSyms.includes(h.sym) && q.price !== h.price) nextFlash[h.sym] = q.price > h.price ? "up" : "down";
+    for (const [s, q] of Object.entries(data.quotes)) {
+      const old = quotesRef.current[s];
+      if (old && old.price !== q.price) nextFlash[s] = q.price > old.price ? "up" : "down";
     }
-
-    setHoldings((hs) =>
-      hs.map((h) => {
-        const q = quotes[h.sym];
-        if (!q || h.cls === "cash" || (h.sym === "BTC" && liveBTC.current)) return h;
-        return { ...h, price: q.price, prev: q.prev, source: q.source };
-      })
-    );
-    setIndices((ix) => {
-      const out = { ...ix };
-      for (const k of INDEX_KEYS) out[k] = quotes[INDEX_SYMBOLS[k].sym] ?? ix[k];
-      return out;
+    setQuotes((prev) => {
+      const next = { ...prev, ...data.quotes };
+      if (liveBTC.current && prev.BTC) next.BTC = prev.BTC; // the stream is fresher
+      return next;
     });
     setFlash(nextFlash);
-  }, [symbolKey]);
+  }, [key]);
 
-  const loadRates = useCallback(async () => {
-    const data = await getJSON<{ rates: Rates; source: DataSource }>("/api/fx");
-    if (data) setRates(data);
-  }, []);
+  usePoll(load, QUOTES_MS);
 
-  const loadNews = useCallback(async () => {
-    const data = await getJSON<NewsResponse>("/api/news");
-    if (data) setNews(data);
-  }, []);
-
-  const loadMovers = useCallback(async () => {
-    const data = await getJSON<MoversResponse>("/api/movers");
-    if (data) setMovers(data);
-  }, []);
-
-  usePoll(loadQuotes, QUOTES_MS);
-  usePoll(loadRates, FX_MS);
-  usePoll(loadNews, NEWS_MS);
-  usePoll(loadMovers, MOVERS_MS);
-
-  // Live BTC from Binance's public stream (no API key). Falls back to /api/quotes.
+  const wantsBTC = key.split(",").includes("BTC");
   useEffect(() => {
+    if (!wantsBTC) return;
     let ws: WebSocket | null = null;
     let retries = 0;
     let timer: ReturnType<typeof setTimeout>;
@@ -119,10 +82,13 @@ export function useMarketData() {
         ws.onopen = () => { retries = 0; };
         ws.onmessage = (e) => {
           const d = JSON.parse(e.data);
+          const price = parseFloat(d.c);
+          const prev = parseFloat(d.o);
           liveBTC.current = true;
-          setHoldings((hs) =>
-            hs.map((h) => (h.sym === "BTC" ? { ...h, price: parseFloat(d.c), prev: parseFloat(d.o), source: "live" } : h))
-          );
+          setQuotes((q) => ({
+            ...q,
+            BTC: { symbol: "BTC", price, prev, changePct: ((price - prev) / prev) * 100, time: Date.now(), source: "live" },
+          }));
         };
         ws.onclose = () => {
           liveBTC.current = false;
@@ -134,24 +100,40 @@ export function useMarketData() {
     };
     connect();
     return () => { closed = true; clearTimeout(timer); ws?.close(); };
+  }, [wantsBTC]);
+
+  return { quotes, flash };
+}
+
+/** Everything the dashboard needs beyond the user's own symbols. */
+export function useMarketData(symbols: string[]) {
+  const indexSyms = INDEX_KEYS.map((k) => INDEX_SYMBOLS[k].sym);
+  const { quotes, flash } = useQuotes([...symbols, ...indexSyms]);
+  const [rates, setRates] = useState<{ rates: Rates; source: DataSource }>({ rates: SAMPLE_RATES, source: "sample" });
+  const [news, setNews] = useState<NewsResponse | null>(null);
+  const [movers, setMovers] = useState<MoversResponse | null>(null);
+
+  const loadRates = useCallback(async () => {
+    const data = await getJSON<{ rates: Rates; source: DataSource }>("/api/fx");
+    if (data) setRates(data);
+  }, []);
+  const loadNews = useCallback(async () => {
+    const data = await getJSON<NewsResponse>("/api/news");
+    if (data) setNews(data);
+  }, []);
+  const loadMovers = useCallback(async () => {
+    const data = await getJSON<MoversResponse>("/api/movers");
+    if (data) setMovers(data);
   }, []);
 
-  const addHolding = useCallback((sym: string, qty: number, cost: number) => {
-    setHoldings((hs) => {
-      const existing = hs.find((h) => h.sym === sym);
-      if (existing) {
-        return hs.map((h) =>
-          h.sym === sym ? { ...h, cost: (h.cost * h.qty + cost * qty) / (h.qty + qty), qty: h.qty + qty } : h
-        );
-      }
-      const crypto = sym in CRYPTO_IDS;
-      // Priced at cost until the next quote refresh picks it up
-      return [...hs, {
-        sym, name: sym, ex: crypto ? "Crypto" : "US", cls: crypto ? "crypto" : "us", cur: "USD",
-        qty, cost, price: cost, prev: cost, source: "sample",
-      }];
-    });
-  }, []);
+  usePoll(loadRates, FX_MS);
+  usePoll(loadNews, NEWS_MS);
+  usePoll(loadMovers, MOVERS_MS);
 
-  return { holdings, indices, rates: rates.rates, ratesSource: rates.source, news, movers, flash, addHolding };
+  const indices = Object.fromEntries(INDEX_KEYS.map((k) => [k, quotes[INDEX_SYMBOLS[k].sym] ?? null])) as Record<
+    IndexKey,
+    Quote | null
+  >;
+
+  return { quotes, flash, indices, rates: rates.rates, ratesSource: rates.source, news, movers };
 }

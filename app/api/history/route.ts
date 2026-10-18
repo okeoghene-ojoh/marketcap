@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { badRequest, cachedJson, parseSymbols } from "@/lib/api";
+import { badRequest, cachedJson, parseSymbols, ttlFor } from "@/lib/api";
 import { getHistory } from "@/lib/providers";
 import { HISTORY_RANGES, type HistoryRange } from "@/lib/types";
 
@@ -9,5 +9,6 @@ export async function GET(req: NextRequest) {
   const range = (req.nextUrl.searchParams.get("range") ?? "1M").toUpperCase() as HistoryRange;
   if (!symbol) return badRequest("Pass ?symbol=AAPL");
   if (!HISTORY_RANGES.includes(range)) return badRequest(`range must be one of ${HISTORY_RANGES.join(", ")}`);
-  return cachedJson(await getHistory(symbol, range), range === "1D" ? 300 : 3600);
+  const data = await getHistory(symbol, range);
+  return cachedJson(data, ttlFor(data.source, range === "1D" ? 300 : 3600));
 }

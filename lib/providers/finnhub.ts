@@ -52,6 +52,24 @@ export async function finnhubCompanyNews(symbol: string, limit = 12): Promise<Ar
   return list.filter((n) => n.headline && n.url).slice(0, limit).map(toArticle);
 }
 
+export interface FinnhubProfile {
+  name?: string; exchange?: string; ipo?: string; logo?: string; weburl?: string;
+  finnhubIndustry?: string; country?: string; marketCapitalization?: number; // in millions
+}
+
+export async function finnhubProfile(symbol: string): Promise<FinnhubProfile | null> {
+  const d = await getJSON<FinnhubProfile>(url("/stock/profile2", { symbol }), 86400);
+  return d && d.name ? d : null; // empty object for unknown symbols / ETFs
+}
+
+/** Field names vary by company, so callers pick the first one present. */
+export type FinnhubMetrics = Record<string, number | undefined>;
+
+export async function finnhubMetrics(symbol: string): Promise<FinnhubMetrics> {
+  const d = await getJSON<{ metric?: FinnhubMetrics }>(url("/stock/metric", { symbol, metric: "all" }), 3600);
+  return d.metric ?? {};
+}
+
 interface FinnhubSearch { result: { symbol: string; description: string; type: string }[] }
 
 export async function finnhubSearch(q: string): Promise<SearchResult[]> {

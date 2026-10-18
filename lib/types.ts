@@ -66,6 +66,36 @@ export interface NewsResponse {
   source: DataSource;
 }
 
+/** Everything the quote page shows that isn't the live price or chart. */
+export interface Overview {
+  symbol: string;
+  name: string;
+  kind: "stock" | "crypto" | "ngx";
+  exchange?: string;
+  currency: Currency;
+  logo?: string;
+  website?: string;
+  industry?: string;
+  country?: string;
+  ipo?: string;
+  /** price when the page was generated; the page then polls for updates */
+  quote: Quote;
+  stats: {
+    open?: number;
+    high?: number;
+    low?: number;
+    prevClose?: number;
+    marketCap?: number; // in `currency`, full units
+    pe?: number;
+    high52?: number;
+    low52?: number;
+    dividendYield?: number; // percent
+    avgVolume?: number; // shares (or USD volume for crypto)
+    beta?: number;
+  };
+  source: DataSource;
+}
+
 export interface SearchResult {
   symbol: string;
   name: string;
