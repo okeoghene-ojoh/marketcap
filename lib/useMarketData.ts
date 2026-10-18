@@ -1,48 +1,111 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { initialHoldings, initialIndices, watchSyms } from "./sample-data";
-import type { Flash, Holding, IndexKey, IndexQuote } from "./types";
+import { CRYPTO_IDS, INDEX_SYMBOLS, SAMPLE_RATES, initialHoldings, sampleQuote, watchSyms } from "./sample-data";
+import type {
+  DataSource, Flash, Holding, IndexKey, MoversResponse, NewsResponse, Quote, Rates,
+} from "./types";
 
-const TICK_MS = 3000;
+const QUOTES_MS = 15_000;
+const MOVERS_MS = 60_000;
+const NEWS_MS = 5 * 60_000;
+const FX_MS = 60 * 60_000;
+
+const INDEX_KEYS = Object.keys(INDEX_SYMBOLS) as IndexKey[];
+
+async function getJSON<T>(path: string): Promise<T | null> {
+  try {
+    const res = await fetch(path);
+    return res.ok ? ((await res.json()) as T) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Run `fn` now and every `ms`, skipping while the tab is hidden (saves API quota). */
+function usePoll(fn: () => void, ms: number) {
+  useEffect(() => {
+    fn();
+    const id = setInterval(() => document.visibilityState === "visible" && fn(), ms);
+    const onVisible = () => document.visibilityState === "visible" && fn();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [fn, ms]);
+}
 
 /**
- * Sample market data with simulated ticks, plus a live BTC price from
- * Binance's public stream when it's reachable. Swap this hook's internals
- * for real API calls later; the components won't need to change.
+ * Market data for the dashboard, from our /api routes (which hide the API keys
+ * and fall back to labelled sample data), plus a live BTC price streamed from
+ * Binance when it's reachable.
  */
 export function useMarketData() {
   const [holdings, setHoldings] = useState<Holding[]>(initialHoldings);
-  const [indices, setIndices] = useState<Record<IndexKey, IndexQuote>>(initialIndices);
+  const [indices, setIndices] = useState<Record<IndexKey, Quote | null>>(() =>
+    Object.fromEntries(INDEX_KEYS.map((k) => [k, sampleQuote(INDEX_SYMBOLS[k].sym)])) as Record<IndexKey, Quote | null>
+  );
+  const [rates, setRates] = useState<{ rates: Rates; source: DataSource }>({ rates: SAMPLE_RATES, source: "sample" });
+  const [news, setNews] = useState<NewsResponse | null>(null);
+  const [movers, setMovers] = useState<MoversResponse | null>(null);
   const [flash, setFlash] = useState<Flash>({});
+
+  const holdingsRef = useRef(holdings);
+  holdingsRef.current = holdings;
   const liveBTC = useRef(false);
 
-  // Simulated ticks
-  useEffect(() => {
-    const id = setInterval(() => {
-      const nextFlash: Flash = {};
-      setHoldings((hs) =>
-        hs.map((h) => {
-          if (h.cls === "cash" || (h.sym === "BTC" && liveBTC.current)) return h;
-          if (h.cls === "ngx" && Math.random() < 0.8) return h; // NGX is delayed, so it moves rarely
-          const move = h.price * (Math.random() - 0.5) * 0.003;
-          if (watchSyms.includes(h.sym)) nextFlash[h.sym] = move >= 0 ? "up" : "down";
-          return { ...h, price: Math.max(0.0001, h.price + move) };
-        })
-      );
-      setIndices((ix) => {
-        const out = { ...ix };
-        for (const k of Object.keys(out) as IndexKey[]) {
-          out[k] = { ...out[k], price: out[k].price + out[k].price * (Math.random() - 0.5) * 0.0008 };
-        }
-        return out;
-      });
-      setFlash(nextFlash);
-    }, TICK_MS);
-    return () => clearInterval(id);
+  // Re-subscribe when the set of symbols changes (e.g. a holding is added)
+  const symbolKey = holdings.filter((h) => h.cls !== "cash").map((h) => h.sym).join(",");
+
+  const loadQuotes = useCallback(async () => {
+    const symbols = [...symbolKey.split(","), ...INDEX_KEYS.map((k) => INDEX_SYMBOLS[k].sym)].filter(Boolean);
+    const data = await getJSON<{ quotes: Record<string, Quote> }>(`/api/quotes?symbols=${symbols.join(",")}`);
+    if (!data) return;
+    const { quotes } = data;
+
+    const nextFlash: Flash = {};
+    for (const h of holdingsRef.current) {
+      const q = quotes[h.sym];
+      if (q && watchSyms.includes(h.sym) && q.price !== h.price) nextFlash[h.sym] = q.price > h.price ? "up" : "down";
+    }
+
+    setHoldings((hs) =>
+      hs.map((h) => {
+        const q = quotes[h.sym];
+        if (!q || h.cls === "cash" || (h.sym === "BTC" && liveBTC.current)) return h;
+        return { ...h, price: q.price, prev: q.prev, source: q.source };
+      })
+    );
+    setIndices((ix) => {
+      const out = { ...ix };
+      for (const k of INDEX_KEYS) out[k] = quotes[INDEX_SYMBOLS[k].sym] ?? ix[k];
+      return out;
+    });
+    setFlash(nextFlash);
+  }, [symbolKey]);
+
+  const loadRates = useCallback(async () => {
+    const data = await getJSON<{ rates: Rates; source: DataSource }>("/api/fx");
+    if (data) setRates(data);
   }, []);
 
-  // Live BTC from Binance (no API key needed). Falls back to simulation.
+  const loadNews = useCallback(async () => {
+    const data = await getJSON<NewsResponse>("/api/news");
+    if (data) setNews(data);
+  }, []);
+
+  const loadMovers = useCallback(async () => {
+    const data = await getJSON<MoversResponse>("/api/movers");
+    if (data) setMovers(data);
+  }, []);
+
+  usePoll(loadQuotes, QUOTES_MS);
+  usePoll(loadRates, FX_MS);
+  usePoll(loadNews, NEWS_MS);
+  usePoll(loadMovers, MOVERS_MS);
+
+  // Live BTC from Binance's public stream (no API key). Falls back to /api/quotes.
   useEffect(() => {
     let ws: WebSocket | null = null;
     let retries = 0;
@@ -57,7 +120,9 @@ export function useMarketData() {
         ws.onmessage = (e) => {
           const d = JSON.parse(e.data);
           liveBTC.current = true;
-          setHoldings((hs) => hs.map((h) => (h.sym === "BTC" ? { ...h, price: parseFloat(d.c), prev: parseFloat(d.o) } : h)));
+          setHoldings((hs) =>
+            hs.map((h) => (h.sym === "BTC" ? { ...h, price: parseFloat(d.c), prev: parseFloat(d.o), source: "live" } : h))
+          );
         };
         ws.onclose = () => {
           liveBTC.current = false;
@@ -79,9 +144,14 @@ export function useMarketData() {
           h.sym === sym ? { ...h, cost: (h.cost * h.qty + cost * qty) / (h.qty + qty), qty: h.qty + qty } : h
         );
       }
-      return [...hs, { sym, name: sym, ex: "US", cls: "us", cur: "USD", qty, cost, price: cost, prev: cost }];
+      const crypto = sym in CRYPTO_IDS;
+      // Priced at cost until the next quote refresh picks it up
+      return [...hs, {
+        sym, name: sym, ex: crypto ? "Crypto" : "US", cls: crypto ? "crypto" : "us", cur: "USD",
+        qty, cost, price: cost, prev: cost, source: "sample",
+      }];
     });
   }, []);
 
-  return { holdings, indices, flash, addHolding };
+  return { holdings, indices, rates: rates.rates, ratesSource: rates.source, news, movers, flash, addHolding };
 }

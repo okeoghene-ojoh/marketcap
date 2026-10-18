@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { Icon } from "../Icon";
 import { changePct, num, pct } from "@/lib/format";
-import type { IndexKey, IndexQuote } from "@/lib/types";
+import { INDEX_SYMBOLS } from "@/lib/sample-data";
+import type { IndexKey, Quote } from "@/lib/types";
 
 function isUSMarketOpen() {
   const ny = new Date(new Date().toLocaleString("en-US", { timeZone: "America/New_York" }));
@@ -11,7 +12,7 @@ function isUSMarketOpen() {
   return ny.getDay() >= 1 && ny.getDay() <= 5 && mins >= 570 && mins < 960;
 }
 
-export function IndicesCard({ indices }: { indices: Record<IndexKey, IndexQuote> }) {
+export function IndicesCard({ indices }: { indices: Record<IndexKey, Quote | null> }) {
   // Computed on the client only, so server and browser render the same HTML.
   const [open, setOpen] = useState<boolean | null>(null);
   useEffect(() => {
@@ -20,7 +21,8 @@ export function IndicesCard({ indices }: { indices: Record<IndexKey, IndexQuote>
     return () => clearInterval(id);
   }, []);
 
-  const spxPct = changePct(indices.spx.price, indices.spx.prev);
+  const spx = indices.spx;
+  const spxPct = spx ? changePct(spx.price, spx.prev) : 0;
 
   return (
     <article className="card lime">
@@ -32,27 +34,29 @@ export function IndicesCard({ indices }: { indices: Record<IndexKey, IndexQuote>
         </div>
         <button className="icon-btn lime-more" aria-label="More"><Icon name="more" /></button>
       </div>
-      <div className="label dark">S&amp;P 500</div>
+      <div className="label dark">
+        {INDEX_SYMBOLS.spx.label}{spx?.source === "sample" ? " · sample" : ""}
+      </div>
       <div className="index-row">
-        <div className="index-val">{num(indices.spx.price)}</div>
-        <span className={`chip ${spxPct < 0 ? "neg" : ""}`}>{pct(spxPct)} today</span>
+        <div className="index-val">{spx ? num(spx.price) : "—"}</div>
+        {spx && <span className={`chip ${spxPct < 0 ? "neg" : ""}`}>{pct(spxPct)} today</span>}
       </div>
       <div className="tiles">
-        <IndexTile label="NASDAQ" quote={indices.ndx} />
-        <IndexTile label="NGX ASI" quote={indices.ngx} />
+        <IndexTile label={INDEX_SYMBOLS.ndx.label} quote={indices.ndx} />
+        <IndexTile label={INDEX_SYMBOLS.ngx.label} quote={indices.ngx} />
       </div>
     </article>
   );
 }
 
-function IndexTile({ label, quote }: { label: string; quote: IndexQuote }) {
+function IndexTile({ label, quote }: { label: string; quote: Quote | null }) {
   return (
     <div className="tile">
       <div className="tile-top">
-        <span>{label}</span>
-        <span className="tile-chg">{pct(changePct(quote.price, quote.prev))}</span>
+        <span>{label}{quote?.source === "sample" ? " · sample" : ""}</span>
+        {quote && <span className="tile-chg">{pct(changePct(quote.price, quote.prev))}</span>}
       </div>
-      <div className="tile-val"><Icon name="trend" size="sm" /><span>{num(quote.price)}</span></div>
+      <div className="tile-val"><Icon name="trend" size="sm" /><span>{quote ? num(quote.price) : "—"}</span></div>
     </div>
   );
 }

@@ -12,11 +12,11 @@ import { MoversCard } from "./MoversCard";
 import { AddHoldingDialog } from "./AddHoldingDialog";
 import { useMarketData } from "@/lib/useMarketData";
 import { computeTotals } from "@/lib/portfolio";
-import { movers, news, watchSyms } from "@/lib/sample-data";
+import { watchSyms } from "@/lib/sample-data";
 import type { AssetClass, Currency, Holding } from "@/lib/types";
 
 export function Dashboard({ userName }: { userName: string }) {
-  const { holdings, indices, flash, addHolding } = useMarketData();
+  const { holdings, indices, rates, ratesSource, news, movers, flash, addHolding } = useMarketData();
   const [currency, setCurrency] = useState<Currency>("USD");
   const [hidden, setHidden] = useState(false);
   const [selectedClass, setSelectedClass] = useState<AssetClass>("us");
@@ -25,7 +25,7 @@ export function Dashboard({ userName }: { userName: string }) {
   const [notifCount, setNotifCount] = useState(3);
   const dialogRef = useRef<HTMLDialogElement>(null);
 
-  const totals = useMemo(() => computeTotals(holdings), [holdings]);
+  const totals = useMemo(() => computeTotals(holdings, rates), [holdings, rates]);
   const watchItems = useMemo(
     () => watchSyms.map((s) => holdings.find((h) => h.sym === s)).filter((h): h is Holding => !!h),
     [holdings]
@@ -44,6 +44,8 @@ export function Dashboard({ userName }: { userName: string }) {
         <PortfolioCard
           totals={totals}
           currency={currency}
+          rates={rates}
+          ratesSource={ratesSource}
           onCurrency={setCurrency}
           hidden={hidden}
           onToggleHidden={() => setHidden((h) => !h)}
@@ -53,17 +55,19 @@ export function Dashboard({ userName }: { userName: string }) {
       </section>
 
       <section className="row row-mid">
-        <AllocationCard totals={totals} currency={currency} hidden={hidden} selected={selectedClass} onSelect={setSelectedClass} />
-        <ReturnsCard totals={totals} currency={currency} hidden={hidden} />
+        <AllocationCard totals={totals} currency={currency} rates={rates} hidden={hidden} selected={selectedClass} onSelect={setSelectedClass} />
+        <ReturnsCard totals={totals} currency={currency} rates={rates} hidden={hidden} />
         <WatchlistCard items={watchItems} query={query} flash={flash} showAlert={showAlert} onDismissAlert={dismissAlert} />
       </section>
 
       <section className="row row-bottom">
-        <NewsCard items={news} />
-        <MoversCard items={movers} />
+        <NewsCard data={news} />
+        <MoversCard data={movers} />
       </section>
 
-      <footer className="foot">Prototype with sample data. BTC price is live from Binance when online. Not financial advice.</footer>
+      <footer className="foot">
+        Prices from Finnhub &amp; CoinGecko, FX from ExchangeRate-API. Items marked “sample” are demo data. Not financial advice.
+      </footer>
 
       <AddHoldingDialog ref={dialogRef} onSave={addHolding} />
     </div>

@@ -45,7 +45,7 @@ export function WatchlistCard({ items, query, flash, showAlert, onDismissAlert }
               <div className="meta">
                 <div className="row-title">{h.name}</div>
                 <div className="row-sub">
-                  {h.sym}{h.ex ? ` · ${h.ex}` : ""}{h.cur === "NGN" ? " · delayed" : ""}
+                  {h.sym}{h.ex ? ` · ${h.ex}` : ""}{h.source === "sample" ? " · sample" : ""}
                 </div>
               </div>
               <div className="num">

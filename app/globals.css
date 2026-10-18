@@ -213,6 +213,10 @@ ul { list-style: none; margin: 0; padding: 0; }
 .thumb { width: 64px; height: 48px; border-radius: 12px; flex: none; display: grid; place-items: center; font-weight: 700; font-size: 12px; color: #142d0a; }
 .news .meta { flex: 1; min-width: 0; }
 .news .row-title { white-space: normal; }
+img.thumb { object-fit: cover; background: var(--soft); }
+.news-link { display: block; color: inherit; text-decoration: none; }
+.news-link:hover { text-decoration: underline; }
+.rate-note { font-size: 12px; }
 .tag { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--soft); white-space: nowrap; }
 
 /* Movers */

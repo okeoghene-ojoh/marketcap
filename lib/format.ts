@@ -1,18 +1,17 @@
-import { CURRENCY_SYMBOLS, RATES } from "./sample-data";
-import type { Currency } from "./types";
+import { CURRENCY_SYMBOLS } from "./sample-data";
+import type { Currency, Rates } from "./types";
 
-export const toUSD = (amount: number, cur: Currency) => amount / RATES[cur];
+export const toUSD = (amount: number, cur: Currency, rates: Rates) => amount / rates[cur];
 
-interface MoneyOpts {
-  /** the amount is already in `cur`, so don't convert from USD */
-  native?: boolean;
-  sign?: boolean;
-  digits?: number;
-}
+type MoneyOpts = { sign?: boolean; digits?: number } & (
+  /** amount is in USD and gets converted to `cur` */
+  | { rates: Rates; native?: false }
+  /** amount is already in `cur` */
+  | { native: true; rates?: never }
+);
 
-/** Format a USD amount in the given display currency. */
-export function money(amount: number, cur: Currency, opts: MoneyOpts = {}) {
-  const v = opts.native ? amount : amount * RATES[cur];
+export function money(amount: number, cur: Currency, opts: MoneyOpts) {
+  const v = opts.native ? amount : amount * opts.rates[cur];
   const abs = Math.abs(v);
   const digits = opts.digits ?? (abs < 1 ? 4 : 2);
   const s = abs.toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits });
@@ -24,3 +23,12 @@ export const pct = (v: number) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(
 export const num = (v: number) => v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 export const tone = (v: number) => (v >= 0 ? "pos" : "neg");
 export const changePct = (price: number, prev: number) => ((price - prev) / prev) * 100;
+
+export function timeAgo(ms: number, now = Date.now()) {
+  const mins = Math.max(0, Math.round((now - ms) / 60_000));
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return `${hrs} hr ago`;
+  return `${Math.round(hrs / 24)}d ago`;
+}

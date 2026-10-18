@@ -1,22 +1,34 @@
 import { Icon } from "../Icon";
-import type { NewsItem } from "@/lib/types";
+import { timeAgo } from "@/lib/format";
+import type { NewsResponse } from "@/lib/types";
 
-export function NewsCard({ items }: { items: NewsItem[] }) {
+const THUMB_COLORS = ["var(--lime)", "#9fc7f5", "#f5c99f", "#d8c4f5"];
+
+export function NewsCard({ data }: { data: NewsResponse | null }) {
   return (
     <article className="card">
       <div className="card-head">
         <div className="title"><span className="title-ic"><Icon name="news" /></span>Market News</div>
-        <span className="pill">Sample headlines</span>
+        <span className="pill">{!data ? "Loading…" : data.source === "live" ? "Live" : "Sample headlines"}</span>
       </div>
       <ul className="news">
-        {items.map((n) => (
-          <li key={n.title}>
-            <div className="thumb" style={{ background: n.color }}>{n.tag}</div>
+        {!data && <li><div className="row-sub">Loading headlines…</div></li>}
+        {data?.articles.slice(0, 5).map((n, i) => (
+          <li key={n.id}>
+            {n.image ? (
+              // eslint-disable-next-line @next/next/no-img-element -- images come from many news domains
+              <img className="thumb" src={n.image} alt="" loading="lazy" />
+            ) : (
+              <div className="thumb" style={{ background: THUMB_COLORS[i % THUMB_COLORS.length] }}>{n.source.slice(0, 6)}</div>
+            )}
             <div className="meta">
-              <div className="row-title">{n.title}</div>
-              <div className="row-sub">{n.src} · {n.time}</div>
+              {n.url === "#" ? (
+                <div className="row-title">{n.headline}</div>
+              ) : (
+                <a className="row-title news-link" href={n.url} target="_blank" rel="noopener noreferrer">{n.headline}</a>
+              )}
+              <div className="row-sub">{n.source} · {timeAgo(n.time)}</div>
             </div>
-            <span className="tag">{n.tag}</span>
           </li>
         ))}
       </ul>

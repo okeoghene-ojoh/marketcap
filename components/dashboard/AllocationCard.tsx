@@ -2,7 +2,7 @@ import { Icon } from "../Icon";
 import { money, tone } from "@/lib/format";
 import { CLASSES } from "@/lib/sample-data";
 import type { PortfolioTotals } from "@/lib/portfolio";
-import type { AssetClass, Currency } from "@/lib/types";
+import type { AssetClass, Currency, Rates } from "@/lib/types";
 
 const R = 80;
 const C = 2 * Math.PI * R;
@@ -11,12 +11,13 @@ const GAP = 14;
 interface Props {
   totals: PortfolioTotals;
   currency: Currency;
+  rates: Rates;
   hidden: boolean;
   selected: AssetClass;
   onSelect: (k: AssetClass) => void;
 }
 
-export function AllocationCard({ totals, currency, hidden, selected, onSelect }: Props) {
+export function AllocationCard({ totals, currency, rates, hidden, selected, onSelect }: Props) {
   const keys = (Object.keys(CLASSES) as AssetClass[]).filter((k) => (totals.byClass[k] ?? 0) > 0);
 
   let offset = 0;
@@ -58,7 +59,7 @@ export function AllocationCard({ totals, currency, hidden, selected, onSelect }:
           ))}
         </svg>
         <div className="donut-center">
-          <div className="donut-val">{hidden ? "••••" : money(selValue, currency, { digits: 0 })}</div>
+          <div className="donut-val">{hidden ? "••••" : money(selValue, currency, { rates, digits: 0 })}</div>
           <div className="donut-sub">{CLASSES[selected].name} · {((selValue / totals.value) * 100).toFixed(0)}%</div>
         </div>
       </div>
@@ -75,7 +76,7 @@ export function AllocationCard({ totals, currency, hidden, selected, onSelect }:
         {keys.map((k) => (
           <button key={k} className={k === selected ? "active" : ""} onClick={() => onSelect(k)}>
             <span className="swatch" style={{ background: CLASSES[k].color }} />
-            {CLASSES[k].name} {hidden ? "" : money(totals.byClass[k] ?? 0, currency, { digits: 0 })}
+            {CLASSES[k].name} {hidden ? "" : money(totals.byClass[k] ?? 0, currency, { rates, digits: 0 })}
           </button>
         ))}
       </div>

@@ -1,5 +1,5 @@
 import { toUSD } from "./format";
-import type { AssetClass, Holding } from "./types";
+import type { AssetClass, Holding, Rates } from "./types";
 
 export interface PortfolioTotals {
   value: number;
@@ -12,22 +12,22 @@ export interface PortfolioTotals {
   dayPctByClass: Partial<Record<AssetClass, number>>;
 }
 
-/** All amounts in USD. */
-export function computeTotals(holdings: Holding[]): PortfolioTotals {
+/** All amounts in USD, converted at today's rates (cost included, for simplicity). */
+export function computeTotals(holdings: Holding[], rates: Rates): PortfolioTotals {
   let value = 0, prev = 0, cost = 0;
   const byClass: PortfolioTotals["byClass"] = {};
   const prevByClass: PortfolioTotals["byClass"] = {};
   const gainByClass: PortfolioTotals["gainByClass"] = {};
 
   for (const h of holdings) {
-    const v = toUSD(h.price * h.qty, h.cur);
-    const p = toUSD(h.prev * h.qty, h.cur);
+    const v = toUSD(h.price * h.qty, h.cur, rates);
+    const p = toUSD(h.prev * h.qty, h.cur, rates);
     value += v;
     prev += p;
-    cost += toUSD(h.cost * h.qty, h.cur);
+    cost += toUSD(h.cost * h.qty, h.cur, rates);
     byClass[h.cls] = (byClass[h.cls] ?? 0) + v;
     prevByClass[h.cls] = (prevByClass[h.cls] ?? 0) + p;
-    gainByClass[h.cls] = (gainByClass[h.cls] ?? 0) + toUSD((h.price - h.cost) * h.qty, h.cur);
+    gainByClass[h.cls] = (gainByClass[h.cls] ?? 0) + toUSD((h.price - h.cost) * h.qty, h.cur, rates);
   }
 
   const dayPctByClass: PortfolioTotals["dayPctByClass"] = {};

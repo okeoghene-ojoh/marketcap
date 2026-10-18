@@ -4,24 +4,27 @@ import { useState } from "react";
 import { Icon } from "../Icon";
 import { TickerLogo } from "./TickerLogo";
 import { money, pct, tone } from "@/lib/format";
-import type { Mover } from "@/lib/types";
+import type { MoversResponse } from "@/lib/types";
 
-export function MoversCard({ items }: { items: Mover[] }) {
+export function MoversCard({ data }: { data: MoversResponse | null }) {
   const [dir, setDir] = useState<"up" | "down">("up");
-  const list = items
-    .filter((m) => (dir === "up" ? m.pct > 0 : m.pct < 0))
-    .sort((a, b) => (dir === "up" ? b.pct - a.pct : a.pct - b.pct));
+  const list = data ? (dir === "up" ? data.gainers : data.losers) : [];
 
   return (
     <article className="card">
       <div className="card-head">
-        <div className="title"><span className="title-ic"><Icon name="bolt" /></span>Top Movers</div>
+        <div className="title">
+          <span className="title-ic"><Icon name="bolt" /></span>Top Movers
+          {data?.source === "sample" && <span className="tag">sample</span>}
+        </div>
         <div className="seg small">
           <button className={`seg-btn ${dir === "up" ? "active" : ""}`} onClick={() => setDir("up")}>Gainers</button>
           <button className={`seg-btn ${dir === "down" ? "active" : ""}`} onClick={() => setDir("down")}>Losers</button>
         </div>
       </div>
       <ul className="movers">
+        {!data && <li><div className="row-sub">Loading…</div></li>}
+        {data && list.length === 0 && <li><div className="row-sub">Nothing {dir === "up" ? "up" : "down"} right now</div></li>}
         {list.map((m) => (
           <li key={m.sym}>
             <TickerLogo sym={m.sym} cur={m.cur} />

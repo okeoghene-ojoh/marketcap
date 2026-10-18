@@ -4,6 +4,9 @@ out/
 *.tsbuildinfo
 next-env.d.ts
 .env*.local
+# never commit notes containing secrets
+API KEYS.txt
+*keys*.txt
 .vercel
 npm-debug.log*
 .DS_Store
