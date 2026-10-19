@@ -32,7 +32,10 @@ interface TDSeries {
 
 /** `symbol` uses Twelve Data's format: "AAPL", or "BTC/USD" for crypto. */
 export async function twelveDataHistory(symbol: string, range: HistoryRange): Promise<Candle[]> {
-  const { interval, outputsize, ttl } = rangeParams(range);
+  const { interval, outputsize: tradingDays, ttl } = rangeParams(range);
+  // Sizes above count stock trading days (5 a week). Crypto trades 7 days a week, so it
+  // needs 7/5 as many daily bars to cover the same calendar period.
+  const outputsize = symbol.includes("/") && interval === "1day" ? Math.round((tradingDays * 7) / 5) : tradingDays;
   const params = new URLSearchParams({ symbol, interval, outputsize: String(outputsize), apikey: key() ?? "" });
   const d = await getJSON<TDSeries>(`${BASE}/time_series?${params}`, ttl);
   if (d.status !== "ok" || !d.values) throw new Error(d.message ?? "Twelve Data returned no values");

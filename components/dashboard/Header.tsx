@@ -15,6 +15,7 @@ const TABS = [
   { label: "Overview", href: "/" },
   { label: "Markets", href: null },
   { label: "Portfolio", href: "/portfolio" },
+  { label: "Compare", href: "/compare" },
   { label: "News", href: null },
 ];
 

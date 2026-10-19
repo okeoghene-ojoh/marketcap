@@ -1,10 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import {
-  AreaSeries, ColorType, CrosshairMode, createChart,
-  type IChartApi, type ISeriesApi, type Time, type UTCTimestamp,
-} from "lightweight-charts";
+import { AreaSeries, type IChartApi, type ISeriesApi } from "lightweight-charts";
+import { createThemedChart, cssVar, isIntraday, timeLabel, toChartTime, withAlpha } from "@/lib/chart";
 import { HISTORY_RANGES, type Candle, type DataSource, type HistoryRange } from "@/lib/types";
 import { pct, tone } from "@/lib/format";
 
@@ -16,25 +14,6 @@ interface Props {
 interface Series {
   candles: Candle[];
   source: DataSource;
-}
-
-const isIntraday = (r: HistoryRange) => r === "1D" || r === "5D";
-
-/** Twelve Data gives "YYYY-MM-DD" for daily bars and "YYYY-MM-DD HH:mm:ss" (exchange time) for intraday. */
-function toChartTime(t: string): Time {
-  if (t.length <= 10) return t as Time;
-  // Treat exchange-local time as UTC so the axis shows exchange hours
-  return (Date.parse(t.replace(" ", "T") + "Z") / 1000) as UTCTimestamp;
-}
-
-function cssVar(name: string) {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-}
-
-function withAlpha(hex: string, alpha: number) {
-  const m = /^#?([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(hex);
-  if (!m) return hex;
-  return `rgba(${parseInt(m[1], 16)}, ${parseInt(m[2], 16)}, ${parseInt(m[3], 16)}, ${alpha})`;
 }
 
 export function PriceChart({ symbol, formatPrice }: Props) {
@@ -52,47 +31,19 @@ export function PriceChart({ symbol, formatPrice }: Props) {
   useEffect(() => {
     const box = boxRef.current;
     if (!box) return;
-    const chart = createChart(box, {
-      autoSize: true,
-      layout: {
-        background: { type: ColorType.Solid, color: "transparent" },
-        textColor: cssVar("--muted"),
-        fontFamily: getComputedStyle(document.body).fontFamily,
-        // Keep the TradingView logo: the library's license asks for attribution
-      },
-      grid: { vertLines: { visible: false }, horzLines: { color: cssVar("--line") } },
-      rightPriceScale: { borderVisible: false },
-      timeScale: { borderVisible: false },
-      crosshair: { mode: CrosshairMode.Magnet },
-      handleScroll: false,
-      handleScale: false,
-    });
+    const { chart, dispose } = createThemedChart(box);
     const series = chart.addSeries(AreaSeries, { lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
 
     chart.subscribeCrosshairMove((param) => {
       const point = param.time !== undefined ? param.seriesData.get(series) : undefined;
       if (!point || !("value" in point)) return setHover(null);
-      const t = param.time;
-      const label =
-        typeof t === "number"
-          ? new Date(t * 1000).toLocaleString("en-US", { timeZone: "UTC", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
-          : new Date(`${t as string}T00:00:00Z`).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" });
-      setHover({ price: (point as { value: number }).value, label });
+      setHover({ price: (point as { value: number }).value, label: timeLabel(param.time!) });
     });
-
-    // Re-read colours when the theme changes
-    const recolor = () => chart.applyOptions({
-      layout: { textColor: cssVar("--muted") },
-      grid: { horzLines: { color: cssVar("--line") } },
-    });
-    const observer = new MutationObserver(recolor);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 
     chartRef.current = chart;
     seriesRef.current = series;
     return () => {
-      observer.disconnect();
-      chart.remove();
+      dispose();
       chartRef.current = null;
       seriesRef.current = null;
     };

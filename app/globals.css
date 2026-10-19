@@ -404,3 +404,19 @@ table.holdings { width: 100%; min-width: 820px; border-collapse: collapse; font-
 .brand { display: flex; align-items: center; gap: 6px; }
 .logo-mark { flex: none; display: block; }
 .auth-brand { gap: 10px; font-size: 14px; color: var(--text); }
+
+/* Compare page */
+.range-seg { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.compare-legend { display: grid; gap: 6px; margin: 16px 0 12px; }
+.compare-legend li { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: var(--soft); font-size: 14px; }
+.compare-legend .swatch { width: 12px; height: 12px; border-radius: 4px; }
+.compare-sym { font-weight: 700; text-decoration: none; }
+.compare-sym:hover { text-decoration: underline; }
+.compare-name { flex: 1; min-width: 0; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.compare-val { font-weight: 600; font-variant-numeric: tabular-nums; }
+.chip-x { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; color: var(--muted); }
+.chip-x:hover { background: var(--card); color: var(--text); }
+.compare-hover { min-height: 20px; margin: 14px 0 6px; }
+.compare-box { height: 380px; }
+.compare-note { margin: 10px 0 0; }
+@media (max-width: 860px) { .compare-box { height: 280px; } }

@@ -4,7 +4,8 @@ import type { DataSource } from "./types";
 /** JSON response that Vercel's CDN may cache for `maxAge` seconds (shared by all visitors). */
 export function cachedJson(data: unknown, maxAge: number) {
   return NextResponse.json(data, {
-    headers: { "Cache-Control": `public, s-maxage=${maxAge}, stale-while-revalidate=${maxAge * 2}` },
+    // Browsers always re-check (max-age=0); Vercel's CDN shares the response for maxAge seconds
+    headers: { "Cache-Control": `public, max-age=0, s-maxage=${maxAge}, stale-while-revalidate=${maxAge * 2}` },
   });
 }
 

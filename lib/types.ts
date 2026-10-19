@@ -115,4 +115,7 @@ export interface Candle {
 export const HISTORY_RANGES = ["1D", "5D", "1M", "6M", "YTD", "1Y", "5Y", "MAX"] as const;
 export type HistoryRange = (typeof HISTORY_RANGES)[number];
 
+/** Most lines the compare page will draw at once. */
+export const MAX_COMPARE = 5;
+
 export type Flash = Record<string, "up" | "down">;

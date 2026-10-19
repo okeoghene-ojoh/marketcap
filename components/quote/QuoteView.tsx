@@ -86,6 +86,10 @@ export function QuoteView({ overview }: { overview: Overview }) {
             <button className="btn outline" onClick={() => dialogRef.current?.showModal()}>
               <Icon name="plus" size="sm" />Add Holding
             </button>
+            {/* Compare against the S&P 500 ETF (or SPY against the NASDAQ ETF) */}
+            <Link href={`/compare?s=${symbol},${symbol === "SPY" ? "QQQ" : "SPY"}`} className="btn outline">
+              <Icon name="trend" size="sm" />Compare
+            </Link>
           </div>
 
           <PriceChart symbol={symbol} formatPrice={fmt} />

@@ -67,6 +67,7 @@ export const SYMBOL_NAMES: Record<string, string> = {
   AAPL: "Apple Inc.", NVDA: "NVIDIA Corp.", MSFT: "Microsoft", AMZN: "Amazon", GOOGL: "Alphabet",
   META: "Meta Platforms", TSLA: "Tesla", AMD: "AMD", NFLX: "Netflix", INTC: "Intel", BA: "Boeing",
   DIS: "Disney", PLTR: "Palantir", JPM: "JPMorgan Chase", KO: "Coca-Cola",
+  SPY: "S&P 500 ETF (SPY)", QQQ: "NASDAQ-100 ETF (QQQ)",
   BTC: "Bitcoin", ETH: "Ethereum", SOL: "Solana", DOGE: "Dogecoin",
   DANGCEM: "Dangote Cement", MTNN: "MTN Nigeria", ZENITH: "Zenith Bank", OANDO: "Oando", GTCO: "GTCO",
 };
