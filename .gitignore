@@ -10,3 +10,6 @@ API KEYS.txt
 .vercel
 npm-debug.log*
 .DS_Store
+
+# local-only files with secrets
+*.local.sql

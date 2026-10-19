@@ -14,6 +14,7 @@ import { AddHoldingDialog } from "./AddHoldingDialog";
 import { useMarketData } from "@/lib/useMarketData";
 import { usePortfolio } from "@/lib/usePortfolio";
 import { useAuth } from "../AuthProvider";
+import { useAlerts } from "../AlertsProvider";
 import { computeTotals, priceHoldings, priceOf } from "@/lib/portfolio";
 import type { AssetClass, Currency } from "@/lib/types";
 
@@ -31,6 +32,8 @@ export function Dashboard() {
   const [selectedClass, setSelectedClass] = useState<AssetClass>("us");
   // The sample price alert is only shown in the signed-out demo (real alerts arrive in phase 8)
   const [showAlert, setShowAlert] = useState(!user);
+  const { notifications, markRead } = useAlerts();
+  const latest = notifications.find((n) => !n.read);
   const [notifCount, setNotifCount] = useState(user ? 0 : 3);
   const dialogRef = useRef<HTMLDialogElement>(null);
 
@@ -86,7 +89,16 @@ export function Dashboard() {
       <section className="row row-mid">
         <AllocationCard totals={totals} currency={currency} rates={rates} hidden={hidden} selected={selectedClass} onSelect={setSelectedClass} />
         <ReturnsCard totals={totals} currency={currency} rates={rates} hidden={hidden} />
-        <WatchlistCard items={watchItems} flash={flash} showAlert={showAlert} onDismissAlert={dismissAlert} />
+        <WatchlistCard
+          items={watchItems}
+          flash={flash}
+          alert={
+            user
+              ? latest ? { title: latest.title, sub: "Price alert triggered", symbol: latest.symbol ?? undefined } : null
+              : showAlert ? { title: "NVDA crossed $135.00", sub: "Price alert triggered (sample)" } : null
+          }
+          onDismissAlert={() => (user ? latest && markRead(latest.id) : dismissAlert())}
+        />
       </section>
 
       <section className="row row-bottom">

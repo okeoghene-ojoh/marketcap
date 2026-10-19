@@ -8,6 +8,7 @@ import { Icon } from "../Icon";
 import { HoldingsTable } from "./HoldingsTable";
 import { EditHoldingDialog } from "./EditHoldingDialog";
 import { WatchlistManager } from "./WatchlistManager";
+import { AlertsManager } from "../alerts/AlertsManager";
 import { useQuotes, useRates } from "@/lib/useMarketData";
 import { usePortfolio } from "@/lib/usePortfolio";
 import { computeTotals, priceHoldings } from "@/lib/portfolio";
@@ -127,6 +128,8 @@ export function PortfolioView() {
           onDelete={p.deleteWatchlist}
         />
       )}
+
+      <AlertsManager />
 
       <footer className="foot">Values use live prices where available; gains use today’s exchange rates. Not financial advice.</footer>
 

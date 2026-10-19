@@ -7,6 +7,10 @@ import { AddHoldingDialog } from "../dashboard/AddHoldingDialog";
 import { TickerLogo } from "../dashboard/TickerLogo";
 import { Icon } from "../Icon";
 import { PriceChart } from "./PriceChart";
+import { SetAlertDialog } from "../alerts/SetAlertDialog";
+import { useAlerts } from "../AlertsProvider";
+import { useAuth } from "../AuthProvider";
+import { describeAlert } from "@/lib/alerts/describe";
 import { getJSON, usePoll, useQuotes } from "@/lib/useMarketData";
 import { usePortfolio } from "@/lib/usePortfolio";
 import { money, pct, timeAgo, tone } from "@/lib/format";
@@ -26,6 +30,10 @@ export function QuoteView({ overview }: { overview: Overview }) {
   const watched = isWatched(symbol);
   const position = positions.find((p) => p.sym === symbol);
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const alertRef = useRef<HTMLDialogElement>(null);
+  const { enabled: authEnabled } = useAuth();
+  const alertsCtx = useAlerts();
+  const myAlerts = alertsCtx.alerts.filter((a) => a.symbol === symbol);
 
   // Company news for stocks; general market news for crypto and NGX
   const [news, setNews] = useState<NewsResponse | null>(null);
@@ -90,7 +98,31 @@ export function QuoteView({ overview }: { overview: Overview }) {
             <Link href={`/compare?s=${symbol},${symbol === "SPY" ? "QQQ" : "SPY"}`} className="btn outline">
               <Icon name="trend" size="sm" />Compare
             </Link>
+            {alertsCtx.enabled ? (
+              <button className="btn outline" onClick={() => alertRef.current?.showModal()}>
+                <Icon name="bell" size="sm" />Set alert
+              </button>
+            ) : authEnabled ? (
+              <Link href="/login" className="btn outline" title="Sign in to set price alerts">
+                <Icon name="bell" size="sm" />Set alert
+              </Link>
+            ) : null}
           </div>
+
+          {myAlerts.length > 0 && (
+            <ul className="alert-chips" aria-label="Your alerts for this symbol">
+              {myAlerts.map((a) => (
+                <li key={a.id} className={a.active ? "" : "off"}>
+                  <Icon name="bell" size="sm" />
+                  {describeAlert(a)}
+                  <span className="row-sub">{a.active ? "active" : "triggered"}</span>
+                  <button className="chip-x" aria-label="Delete alert" onClick={() => alertsCtx.deleteAlert(a.id)}>
+                    <Icon name="x" size="sm" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
 
           <PriceChart symbol={symbol} formatPrice={fmt} />
         </article>
@@ -147,6 +179,15 @@ export function QuoteView({ overview }: { overview: Overview }) {
 
       <footer className="foot">Data may be delayed. Not financial advice.</footer>
 
+      <SetAlertDialog
+        ref={alertRef}
+        symbol={symbol}
+        currency={currency}
+        price={quote.price}
+        onCreate={async (condition, target) =>
+          Boolean(await alertsCtx.createAlert({ symbol, name: overview.name, currency, condition, target }))
+        }
+      />
       <AddHoldingDialog
         ref={dialogRef}
         symbol={symbol}

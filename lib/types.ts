@@ -119,3 +119,27 @@ export type HistoryRange = (typeof HISTORY_RANGES)[number];
 export const MAX_COMPARE = 5;
 
 export type Flash = Record<string, "up" | "down">;
+
+export type AlertCondition = "above" | "below" | "up" | "down";
+
+export interface PriceAlert {
+  id: string;
+  symbol: string;
+  name: string;
+  currency: Currency;
+  condition: AlertCondition;
+  /** a price for above/below, a percent for up/down */
+  target: number;
+  active: boolean;
+  lastTriggeredAt: string | null;
+  lastPrice: number | null;
+}
+
+export interface AppNotification {
+  id: string;
+  symbol: string | null;
+  title: string;
+  body: string;
+  read: boolean;
+  createdAt: string;
+}

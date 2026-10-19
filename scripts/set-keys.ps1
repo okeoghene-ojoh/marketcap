@@ -8,7 +8,10 @@ $settings = @(
   @{ Name = 'FINNHUB_API_KEY'; Prompt = 'Finnhub API key'; Secret = $true },
   @{ Name = 'TWELVEDATA_API_KEY'; Prompt = 'Twelve Data API key'; Secret = $true },
   @{ Name = 'NEXT_PUBLIC_SUPABASE_URL'; Prompt = 'Supabase Project URL (https://....supabase.co)'; Secret = $false },
-  @{ Name = 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY'; Prompt = 'Supabase publishable (anon) key'; Secret = $true }
+  @{ Name = 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY'; Prompt = 'Supabase publishable (anon) key'; Secret = $true },
+  @{ Name = 'SUPABASE_SECRET_KEY'; Prompt = 'Supabase SECRET key (sb_secret_...)'; Secret = $true },
+  @{ Name = 'RESEND_API_KEY'; Prompt = 'Resend API key (re_...)'; Secret = $true },
+  @{ Name = 'CRON_SECRET'; Prompt = 'Alert checker password (Enter = create one for me)'; Secret = $true; Generate = $true }
 )
 
 function Read-Value([string]$prompt, [bool]$secret) {
@@ -42,6 +45,12 @@ foreach ($s in $settings) {
   if ($existing) { $label = "$label [saved - Enter to keep]" }
   $value = Read-Value $label $s.Secret
   if (-not $value) { $value = $existing }
+  if (-not $value -and $s.Generate) {
+    # 32 random bytes as hex: a strong password nobody has to remember
+    $bytes = New-Object byte[] 32
+    [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
+    $value = -join ($bytes | ForEach-Object { $_.ToString('x2') })
+  }
   $lines += "$($s.Name)=$value"
   $summary += ("{0}: {1}" -f $s.Name, $(if ($value) { "$($value.Length) characters" } else { 'EMPTY' }))
 }

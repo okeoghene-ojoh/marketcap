@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Urbanist } from "next/font/google";
 import { IconSprite } from "@/components/Icon";
 import { AuthProvider } from "@/components/AuthProvider";
+import { AlertsProvider } from "@/components/AlertsProvider";
 import { getAuth } from "@/lib/supabase/server";
 import "./globals.css";
 
@@ -24,7 +25,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body>
         <IconSprite />
-        <AuthProvider user={user} profile={profile}>{children}</AuthProvider>
+        <AuthProvider user={user} profile={profile}>
+          <AlertsProvider>{children}</AlertsProvider>
+        </AuthProvider>
       </body>
     </html>
   );

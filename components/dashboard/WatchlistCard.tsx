@@ -10,11 +10,12 @@ export type WatchItem = WatchEntry & { price: number; prev: number; source: Data
 interface Props {
   items: WatchItem[];
   flash: Flash;
-  showAlert: boolean;
+  /** Most recent unread alert (or the signed-out demo's sample one) */
+  alert: { title: string; sub: string; symbol?: string } | null;
   onDismissAlert: () => void;
 }
 
-export function WatchlistCard({ items, flash, showAlert, onDismissAlert }: Props) {
+export function WatchlistCard({ items, flash, alert, onDismissAlert }: Props) {
   return (
     <article className="card">
       <div className="card-head">
@@ -22,12 +23,14 @@ export function WatchlistCard({ items, flash, showAlert, onDismissAlert }: Props
         <Link href="/portfolio#watchlists" className="btn outline small">Manage</Link>
       </div>
 
-      {showAlert && (
+      {alert && (
         <div className="alert-row">
           <span className="logo dark-logo"><Icon name="bolt" size="sm" /></span>
           <div className="alert-text">
-            <div className="row-title">NVDA crossed $135.00</div>
-            <div className="alert-sub">Price alert triggered (sample)</div>
+            <div className="row-title">
+              {alert.symbol ? <Link href={`/quote/${alert.symbol}`} className="row-link-inline">{alert.title}</Link> : alert.title}
+            </div>
+            <div className="alert-sub">{alert.sub}</div>
           </div>
           <button className="round ok" aria-label="Acknowledge" onClick={onDismissAlert}><Icon name="check" size="sm" /></button>
           <button className="round" aria-label="Dismiss" onClick={onDismissAlert}><Icon name="x" size="sm" /></button>
