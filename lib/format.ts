@@ -13,7 +13,8 @@ type MoneyOpts = { sign?: boolean; digits?: number } & (
 export function money(amount: number, cur: Currency, opts: MoneyOpts) {
   const v = opts.native ? amount : amount * opts.rates[cur];
   const abs = Math.abs(v);
-  const digits = opts.digits ?? (abs < 1 ? 4 : 2);
+  // Extra decimals for sub-$1 prices (e.g. DOGE), but zero is plain "0.00"
+  const digits = opts.digits ?? (abs > 0 && abs < 1 ? 4 : 2);
   const s = abs.toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits });
   const sign = opts.sign ? (v >= 0 ? "+" : "−") : v < 0 ? "−" : "";
   return `${sign}${CURRENCY_SYMBOLS[cur]}${s}`;
