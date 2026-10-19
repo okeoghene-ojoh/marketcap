@@ -19,7 +19,7 @@ export function WatchlistCard({ items, flash, showAlert, onDismissAlert }: Props
     <article className="card">
       <div className="card-head">
         <div className="title"><span className="title-ic"><Icon name="list" /></span>Watchlist</div>
-        <button className="icon-btn soft" aria-label="More"><Icon name="more" /></button>
+        <Link href="/portfolio#watchlists" className="btn outline small">Manage</Link>
       </div>
 
       {showAlert && (

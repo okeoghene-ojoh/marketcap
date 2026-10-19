@@ -9,11 +9,11 @@ import { ThemeToggle } from "../ThemeToggle";
 import { useAuth } from "../AuthProvider";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
-// Only Overview has a page so far; the rest arrive in later phases.
+// Markets and News pages arrive in later phases.
 const TABS = [
   { label: "Overview", href: "/" },
   { label: "Markets", href: null },
-  { label: "Portfolio", href: null },
+  { label: "Portfolio", href: "/portfolio" },
   { label: "News", href: null },
 ];
 

@@ -1,6 +1,6 @@
 "use client";
 
-// The user's holdings and watchlist, shared by every page.
+// The user's holdings and watchlists, shared by every page.
 // Signed in: stored in their Supabase account (synced across devices).
 // Signed out: stored in this browser (localStorage), starting from a demo portfolio.
 import { useSyncExternalStore } from "react";
@@ -9,8 +9,8 @@ import { supabaseBrowser } from "./supabase/client";
 import { CRYPTO_IDS, NGX_SYMBOLS, SYMBOL_NAMES, initialHoldings, watchSyms } from "./sample-data";
 import type { AssetClass, Currency, Holding } from "./types";
 
-/** A holding without its live price fields. */
-export type Position = Omit<Holding, "price" | "prev" | "source">;
+/** A holding without its live price fields. `date` is the optional buy date (YYYY-MM-DD). */
+export type Position = Omit<Holding, "price" | "prev" | "source"> & { date?: string };
 
 export interface WatchEntry {
   sym: string;
@@ -19,12 +19,20 @@ export interface WatchEntry {
   cur: Currency;
 }
 
+export interface Watchlist {
+  id: string;
+  name: string;
+  items: WatchEntry[];
+}
+
 interface Lists {
   positions: Position[];
-  watchlist: WatchEntry[];
+  watchlists: Watchlist[];
 }
 
 export interface PortfolioState extends Lists {
+  /** Items of the first (default) watchlist, shown on the dashboard */
+  watchlist: WatchEntry[];
   /** "loading" while a signed-in user's data is being fetched */
   mode: "local" | "account" | "loading";
   /** Items saved in this browser that could be copied into the account */
@@ -33,6 +41,7 @@ export interface PortfolioState extends Lists {
 
 /** Exchange, asset class and currency for any symbol we support. */
 export function describeSymbol(sym: string, name?: string, exchange?: string): WatchEntry & { cls: AssetClass } {
+  if (sym === "CASH") return { sym, name: "Cash", ex: "", cur: "USD", cls: "cash" };
   const displayName = name || SYMBOL_NAMES[sym] || sym;
   if (sym in CRYPTO_IDS) return { sym, name: displayName, ex: "Crypto", cur: "USD", cls: "crypto" };
   if (NGX_SYMBOLS.includes(sym)) return { sym, name: displayName, ex: "NGX", cur: "NGN", cls: "ngx" };
@@ -41,20 +50,32 @@ export function describeSymbol(sym: string, name?: string, exchange?: string): W
 
 const LOCAL_KEY = "marketcap-portfolio-v1";
 const DISMISS_KEY = "marketcap-import-dismissed"; // user ids who declined importing
+const DEFAULT_LIST_NAME = "My watchlist";
 
 const DEMO: Lists = {
   positions: initialHoldings.map(({ price: _p, prev: _pv, source: _s, ...pos }) => pos),
-  watchlist: watchSyms.map((s) => {
-    const h = initialHoldings.find((x) => x.sym === s);
-    return h ? { sym: s, name: h.name, ex: h.ex, cur: h.cur } : describeSymbol(s);
-  }),
+  watchlists: [{
+    id: "local-default",
+    name: DEFAULT_LIST_NAME,
+    items: watchSyms.map((s) => {
+      const h = initialHoldings.find((x) => x.sym === s);
+      return h ? { sym: s, name: h.name, ex: h.ex, cur: h.cur } : describeSymbol(s);
+    }),
+  }],
 };
-const LOADING: PortfolioState = { positions: [], watchlist: [], mode: "loading", importable: 0 };
-const SERVER_SNAPSHOT: PortfolioState = { ...DEMO, mode: "local", importable: 0 };
+
+const withDerived = (l: Lists, mode: PortfolioState["mode"], importable = 0): PortfolioState => ({
+  ...l, watchlist: l.watchlists[0]?.items ?? [], mode, importable,
+});
+const LOADING = withDerived({ positions: [], watchlists: [] }, "loading");
+const SERVER_SNAPSHOT = withDerived(DEMO, "local");
+
+const newId = () =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `local-${Date.now()}-${Math.random()}`;
 
 // ---------------- store ----------------
 let local: Lists | null = null;
-let account: (Lists & { userId: string; watchlistId: string }) | null = null;
+let account: (Lists & { userId: string }) | null = null;
 let accountLoading: string | null = null; // user id being fetched
 let snapshot: PortfolioState | null = null;
 const listeners = new Set<() => void>();
@@ -70,10 +91,14 @@ function readLocal(): Lists {
   if (local) return local;
   try {
     const parsed = JSON.parse(safeGet(LOCAL_KEY) ?? "null");
-    local =
-      parsed && Array.isArray(parsed.positions) && Array.isArray(parsed.watchlist)
-        ? { positions: parsed.positions, watchlist: parsed.watchlist }
-        : DEMO;
+    if (parsed && Array.isArray(parsed.positions) && Array.isArray(parsed.watchlists)) {
+      local = { positions: parsed.positions, watchlists: parsed.watchlists };
+    } else if (parsed && Array.isArray(parsed.positions) && Array.isArray(parsed.watchlist)) {
+      // Older format with a single list
+      local = { positions: parsed.positions, watchlists: [{ id: "local-default", name: DEFAULT_LIST_NAME, items: parsed.watchlist }] };
+    } else {
+      local = DEMO;
+    }
   } catch {
     local = DEMO;
   }
@@ -86,6 +111,9 @@ function writeLocal(next: Lists) {
   emit();
 }
 
+const allItems = (l: Lists) => l.watchlists.flatMap((w) => w.items);
+const hasSym = (list: { sym: string }[], sym: string) => list.some((x) => x.sym === sym);
+
 /** Browser items not already in the account, unless the user changed nothing or declined. */
 function countImportable(): number {
   if (!account) return 0;
@@ -93,20 +121,21 @@ function countImportable(): number {
   if (JSON.stringify(l) === JSON.stringify(DEMO)) return 0;
   const dismissed: string[] = JSON.parse(safeGet(DISMISS_KEY) ?? "[]");
   if (dismissed.includes(account.userId)) return 0;
-  const has = (list: { sym: string }[], sym: string) => list.some((x) => x.sym === sym);
+  const accItems = allItems(account);
+  const localItems = [...new Map(allItems(l).map((i) => [i.sym, i])).values()];
   return (
-    l.positions.filter((p) => !has(account!.positions, p.sym)).length +
-    l.watchlist.filter((w) => !has(account!.watchlist, w.sym)).length
+    l.positions.filter((p) => !hasSym(account!.positions, p.sym)).length +
+    localItems.filter((i) => !hasSym(accItems, i.sym)).length
   );
 }
 
 function getSnapshot(): PortfolioState {
   if (!snapshot) {
     snapshot = account
-      ? { positions: account.positions, watchlist: account.watchlist, mode: "account", importable: countImportable() }
+      ? withDerived(account, "account", countImportable())
       : accountLoading
         ? LOADING
-        : { ...readLocal(), mode: "local", importable: 0 };
+        : withDerived(readLocal(), "local");
   }
   return snapshot;
 }
@@ -129,14 +158,26 @@ function subscribe(listener: () => void) {
 }
 
 // ---------------- account sync ----------------
-interface HoldingRow { symbol: string; name: string; exchange: string; asset_class: AssetClass; currency: Currency; shares: number | string; buy_price: number | string }
+interface HoldingRow {
+  symbol: string; name: string; exchange: string; asset_class: AssetClass; currency: Currency;
+  shares: number | string; buy_price: number | string; buy_date: string | null;
+}
 interface ItemRow { symbol: string; name: string; exchange: string; currency: Currency }
+interface ListRow { id: string; name: string; watchlist_items: ItemRow[] }
 
 const fromHoldingRow = (r: HoldingRow): Position => ({
   sym: r.symbol, name: r.name || r.symbol, ex: r.exchange, cls: r.asset_class, cur: r.currency,
-  qty: Number(r.shares), cost: Number(r.buy_price),
+  qty: Number(r.shares), cost: Number(r.buy_price), date: r.buy_date ?? undefined,
 });
 const fromItemRow = (r: ItemRow): WatchEntry => ({ sym: r.symbol, name: r.name || r.symbol, ex: r.exchange, cur: r.currency });
+
+const toHoldingRow = (userId: string, p: Position) => ({
+  user_id: userId, symbol: p.sym, name: p.name, exchange: p.ex, asset_class: p.cls, currency: p.cur,
+  shares: p.qty, buy_price: p.cost, buy_date: p.date || null,
+});
+const toItemRow = (watchlistId: string, w: WatchEntry) => ({
+  watchlist_id: watchlistId, symbol: w.sym, name: w.name, exchange: w.ex, currency: w.cur,
+});
 
 /** Load the signed-in user's portfolio from Supabase (called by AuthProvider). */
 export async function connectAccount(userId: string) {
@@ -147,32 +188,32 @@ export async function connectAccount(userId: string) {
 
   const db = supabaseBrowser();
   try {
-    let { data: lists, error } = await db.from("watchlists").select("id").order("created_at").limit(1);
-    if (error) throw error;
-    if (!lists?.length) {
-      // Normally created at sign-up; make one if it's missing
-      const res = await db.from("watchlists").insert({ user_id: userId }).select("id");
-      if (res.error) throw res.error;
-      lists = res.data;
-    }
-    const watchlistId: string = lists![0].id;
-    const [holdings, items] = await Promise.all([
-      db.from("holdings").select("symbol, name, exchange, asset_class, currency, shares, buy_price").order("created_at"),
-      db.from("watchlist_items").select("symbol, name, exchange, currency").eq("watchlist_id", watchlistId).order("added_at"),
+    const [lists, holdings] = await Promise.all([
+      db.from("watchlists")
+        .select("id, name, watchlist_items(symbol, name, exchange, currency)")
+        .order("created_at")
+        .order("added_at", { referencedTable: "watchlist_items" }),
+      db.from("holdings")
+        .select("symbol, name, exchange, asset_class, currency, shares, buy_price, buy_date")
+        .order("created_at"),
     ]);
+    if (lists.error) throw lists.error;
     if (holdings.error) throw holdings.error;
-    if (items.error) throw items.error;
     if (accountLoading !== userId) return; // signed out meanwhile
 
-    account = {
-      userId,
-      watchlistId,
-      positions: (holdings.data as HoldingRow[]).map(fromHoldingRow),
-      watchlist: (items.data as ItemRow[]).map(fromItemRow),
-    };
+    let watchlists: Watchlist[] = (lists.data as ListRow[]).map((l) => ({
+      id: l.id, name: l.name, items: (l.watchlist_items ?? []).map(fromItemRow),
+    }));
+    if (!watchlists.length) {
+      // Normally created at sign-up; make one if it's missing
+      const res = await db.from("watchlists").insert({ user_id: userId, name: DEFAULT_LIST_NAME }).select("id, name").single();
+      if (res.error) throw res.error;
+      watchlists = [{ id: res.data.id, name: res.data.name, items: [] }];
+    }
+    account = { userId, watchlists, positions: (holdings.data as HoldingRow[]).map(fromHoldingRow) };
   } catch (e) {
     console.error("[portfolio] couldn't load your account data", e);
-    account = { userId, watchlistId: "", positions: [], watchlist: [] };
+    account = { userId, watchlists: [], positions: [] };
   } finally {
     if (accountLoading === userId) accountLoading = null;
     emit();
@@ -187,28 +228,27 @@ export function disconnectAccount() {
 }
 
 /** Re-fetch after a failed write so the screen matches the database. */
-function resync() {
+function resync(error: unknown) {
+  console.error("[portfolio] save failed", error);
   if (!account) return;
   const id = account.userId;
   account = null;
   connectAccount(id);
 }
 
-function setAccountLists(next: Partial<Lists>) {
-  if (!account) return;
-  account = { ...account, ...next };
-  emit();
+/** Apply a change to whichever store is active (optimistically for the account). */
+function update(change: (l: Lists) => Lists) {
+  if (account) {
+    account = { ...account, ...change(account) };
+    emit();
+  } else {
+    writeLocal(change(readLocal()));
+  }
 }
 
-const toHoldingRow = (userId: string, p: Position) => ({
-  user_id: userId, symbol: p.sym, name: p.name, exchange: p.ex, asset_class: p.cls, currency: p.cur,
-  shares: p.qty, buy_price: p.cost,
-});
-const toItemRow = (watchlistId: string, w: WatchEntry) => ({
-  watchlist_id: watchlistId, symbol: w.sym, name: w.name, exchange: w.ex, currency: w.cur,
-});
+const listIdOr = (l: Lists, id?: string) => id ?? l.watchlists[0]?.id;
 
-// ---------------- actions ----------------
+// ---------------- holdings ----------------
 function mergeHolding(positions: Position[], incoming: Position): Position[] {
   const existing = positions.find((p) => p.sym === incoming.sym);
   if (!existing) return [...positions, incoming];
@@ -219,73 +259,128 @@ function mergeHolding(positions: Position[], incoming: Position): Position[] {
   );
 }
 
+/** Buy more: averages the cost into an existing holding. */
 async function addHolding(sym: string, qty: number, cost: number, name?: string, exchange?: string) {
   const { cls, ...entry } = describeSymbol(sym, name, exchange);
-  const incoming: Position = { ...entry, cls, qty, cost };
-
-  if (!account) {
-    const l = readLocal();
-    writeLocal({ ...l, positions: mergeHolding(l.positions, incoming) });
-    return;
-  }
-  const positions = mergeHolding(account.positions, incoming);
-  setAccountLists({ positions }); // optimistic
-  const merged = positions.find((p) => p.sym === sym)!;
+  update((l) => ({ ...l, positions: mergeHolding(l.positions, { ...entry, cls, qty, cost }) }));
+  if (!account) return;
+  const merged = account.positions.find((p) => p.sym === sym)!;
   const { error } = await supabaseBrowser()
     .from("holdings")
     .upsert(toHoldingRow(account.userId, merged), { onConflict: "user_id,symbol" });
-  if (error) { console.error("[portfolio] save failed", error); resync(); }
+  if (error) resync(error);
 }
 
-async function addToWatchlist(sym: string, name?: string, exchange?: string) {
-  const { cls: _cls, ...entry } = describeSymbol(sym, name, exchange);
-  if (!account) {
-    const l = readLocal();
-    if (!l.watchlist.some((w) => w.sym === sym)) writeLocal({ ...l, watchlist: [...l.watchlist, entry] });
-    return;
-  }
-  if (account.watchlist.some((w) => w.sym === sym)) return;
-  setAccountLists({ watchlist: [...account.watchlist, entry] });
-  const { error } = await supabaseBrowser()
-    .from("watchlist_items")
-    .upsert(toItemRow(account.watchlistId, entry), { onConflict: "watchlist_id,symbol", ignoreDuplicates: true });
-  if (error) { console.error("[portfolio] save failed", error); resync(); }
-}
-
-async function removeFromWatchlist(sym: string) {
-  if (!account) {
-    const l = readLocal();
-    writeLocal({ ...l, watchlist: l.watchlist.filter((w) => w.sym !== sym) });
-    return;
-  }
-  setAccountLists({ watchlist: account.watchlist.filter((w) => w.sym !== sym) });
-  const { error } = await supabaseBrowser()
-    .from("watchlist_items")
-    .delete()
-    .eq("watchlist_id", account.watchlistId)
-    .eq("symbol", sym);
-  if (error) { console.error("[portfolio] delete failed", error); resync(); }
-}
-
-/** Copy this browser's holdings and watchlist into the account (skipping symbols already there). */
-async function importLocal() {
+/** Correct a holding's numbers (replaces them, unlike addHolding). */
+async function updateHolding(sym: string, changes: { qty: number; cost: number; date?: string }) {
+  update((l) => ({
+    ...l,
+    positions: l.positions.map((p) => (p.sym === sym ? { ...p, qty: changes.qty, cost: changes.cost, date: changes.date || undefined } : p)),
+  }));
   if (!account) return;
+  const { error } = await supabaseBrowser()
+    .from("holdings")
+    .update({ shares: changes.qty, buy_price: changes.cost, buy_date: changes.date || null })
+    .eq("symbol", sym);
+  if (error) resync(error);
+}
+
+async function removeHolding(sym: string) {
+  update((l) => ({ ...l, positions: l.positions.filter((p) => p.sym !== sym) }));
+  if (!account) return;
+  const { error } = await supabaseBrowser().from("holdings").delete().eq("symbol", sym);
+  if (error) resync(error);
+}
+
+// ---------------- watchlists ----------------
+/** Adds to the given list, or the first (default) one. */
+async function addToWatchlist(sym: string, name?: string, exchange?: string, listId?: string) {
+  const { cls: _cls, ...entry } = describeSymbol(sym, name, exchange);
+  const target = listIdOr(account ?? readLocal(), listId);
+  if (!target) return;
+  const list = (account ?? readLocal()).watchlists.find((w) => w.id === target);
+  if (!list || hasSym(list.items, sym)) return;
+  update((l) => ({
+    ...l,
+    watchlists: l.watchlists.map((w) => (w.id === target ? { ...w, items: [...w.items, entry] } : w)),
+  }));
+  if (!account) return;
+  const { error } = await supabaseBrowser()
+    .from("watchlist_items")
+    .upsert(toItemRow(target, entry), { onConflict: "watchlist_id,symbol", ignoreDuplicates: true });
+  if (error) resync(error);
+}
+
+async function removeFromWatchlist(sym: string, listId?: string) {
+  const target = listIdOr(account ?? readLocal(), listId);
+  if (!target) return;
+  update((l) => ({
+    ...l,
+    watchlists: l.watchlists.map((w) => (w.id === target ? { ...w, items: w.items.filter((i) => i.sym !== sym) } : w)),
+  }));
+  if (!account) return;
+  const { error } = await supabaseBrowser().from("watchlist_items").delete().eq("watchlist_id", target).eq("symbol", sym);
+  if (error) resync(error);
+}
+
+/** Returns the new list's id. */
+async function createWatchlist(name: string): Promise<string | null> {
+  const clean = name.trim().slice(0, 60) || "New list";
+  if (!account) {
+    const id = newId();
+    update((l) => ({ ...l, watchlists: [...l.watchlists, { id, name: clean, items: [] }] }));
+    return id;
+  }
+  const { data, error } = await supabaseBrowser()
+    .from("watchlists")
+    .insert({ user_id: account.userId, name: clean })
+    .select("id, name")
+    .single();
+  if (error) { resync(error); return null; }
+  update((l) => ({ ...l, watchlists: [...l.watchlists, { id: data.id, name: data.name, items: [] }] }));
+  return data.id;
+}
+
+async function renameWatchlist(id: string, name: string) {
+  const clean = name.trim().slice(0, 60);
+  if (!clean) return;
+  update((l) => ({ ...l, watchlists: l.watchlists.map((w) => (w.id === id ? { ...w, name: clean } : w)) }));
+  if (!account) return;
+  const { error } = await supabaseBrowser().from("watchlists").update({ name: clean }).eq("id", id);
+  if (error) resync(error);
+}
+
+/** The last remaining list can't be deleted (the dashboard always shows one). */
+async function deleteWatchlist(id: string) {
+  const current = account ?? readLocal();
+  if (current.watchlists.length <= 1) return;
+  update((l) => ({ ...l, watchlists: l.watchlists.filter((w) => w.id !== id) }));
+  if (!account) return;
+  const { error } = await supabaseBrowser().from("watchlists").delete().eq("id", id);
+  if (error) resync(error);
+}
+
+// ---------------- importing ----------------
+/** Copy this browser's holdings and watchlist items into the account (skipping symbols already there). */
+async function importLocal() {
+  if (!account || !account.watchlists.length) return;
   const l = readLocal();
-  const has = (list: { sym: string }[], sym: string) => list.some((x) => x.sym === sym);
-  const newPositions = l.positions.filter((p) => !has(account!.positions, p.sym));
-  const newItems = l.watchlist.filter((w) => !has(account!.watchlist, w.sym));
+  const accItems = allItems(account);
+  const newPositions = l.positions.filter((p) => !hasSym(account!.positions, p.sym));
+  const newItems = [...new Map(allItems(l).map((i) => [i.sym, i])).values()].filter((i) => !hasSym(accItems, i.sym));
+  const firstList = account.watchlists[0].id;
   const db = supabaseBrowser();
   const [h, w] = await Promise.all([
     newPositions.length
       ? db.from("holdings").upsert(newPositions.map((p) => toHoldingRow(account!.userId, p)), { onConflict: "user_id,symbol", ignoreDuplicates: true })
       : { error: null },
     newItems.length
-      ? db.from("watchlist_items").upsert(newItems.map((i) => toItemRow(account!.watchlistId, i)), { onConflict: "watchlist_id,symbol", ignoreDuplicates: true })
+      ? db.from("watchlist_items").upsert(newItems.map((i) => toItemRow(firstList, i)), { onConflict: "watchlist_id,symbol", ignoreDuplicates: true })
       : { error: null },
   ]);
-  if (h.error || w.error) console.error("[portfolio] import failed", h.error ?? w.error);
   dismissImport();
-  resync();
+  if (h.error || w.error) resync(h.error ?? w.error);
+  else { const id = account.userId; account = null; connectAccount(id); }
 }
 
 function dismissImport() {
@@ -302,10 +397,16 @@ export function usePortfolio() {
   const s = user && state.mode === "local" ? LOADING : state;
   return {
     ...s,
-    isWatched: (sym: string) => s.watchlist.some((w) => w.sym === sym),
+    /** In the default (first) list — what the quote page's button toggles */
+    isWatched: (sym: string) => hasSym(s.watchlist, sym),
     addHolding,
+    updateHolding,
+    removeHolding,
     addToWatchlist,
     removeFromWatchlist,
+    createWatchlist,
+    renameWatchlist,
+    deleteWatchlist,
     importLocal,
     dismissImport,
   };

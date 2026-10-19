@@ -14,15 +14,8 @@ import { AddHoldingDialog } from "./AddHoldingDialog";
 import { useMarketData } from "@/lib/useMarketData";
 import { usePortfolio } from "@/lib/usePortfolio";
 import { useAuth } from "../AuthProvider";
-import { computeTotals } from "@/lib/portfolio";
-import { sampleQuote } from "@/lib/sample-data";
-import type { AssetClass, Currency, Holding, Quote } from "@/lib/types";
-
-/** Live quote if we have one, else sample data, else the given fallback price. */
-function priceOf(sym: string, quotes: Record<string, Quote>, fallback: number) {
-  const q = quotes[sym] ?? sampleQuote(sym);
-  return q ? { price: q.price, prev: q.prev, source: q.source } : { price: fallback, prev: fallback, source: "sample" as const };
-}
+import { computeTotals, priceHoldings, priceOf } from "@/lib/portfolio";
+import type { AssetClass, Currency } from "@/lib/types";
 
 export function Dashboard() {
   const { user, profile, enabled: authEnabled } = useAuth();
@@ -41,13 +34,7 @@ export function Dashboard() {
   const [notifCount, setNotifCount] = useState(user ? 0 : 3);
   const dialogRef = useRef<HTMLDialogElement>(null);
 
-  const holdings: Holding[] = useMemo(
-    () =>
-      positions.map((p) =>
-        p.cls === "cash" ? { ...p, price: 1, prev: 1, source: "live" } : { ...p, ...priceOf(p.sym, quotes, p.cost) }
-      ),
-    [positions, quotes]
-  );
+  const holdings = useMemo(() => priceHoldings(positions, quotes), [positions, quotes]);
   const watchItems: WatchItem[] = useMemo(
     () => watchlist.map((w) => ({ ...w, ...priceOf(w.sym, quotes, 0) })),
     [watchlist, quotes]

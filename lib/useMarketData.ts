@@ -105,18 +105,25 @@ export function useQuotes(symbols: string[]) {
   return { quotes, flash };
 }
 
+/** USD → NGN / EUR rates, refreshed hourly (sample rates until loaded). */
+export function useRates() {
+  const [rates, setRates] = useState<{ rates: Rates; source: DataSource }>({ rates: SAMPLE_RATES, source: "sample" });
+  const load = useCallback(async () => {
+    const data = await getJSON<{ rates: Rates; source: DataSource }>("/api/fx");
+    if (data) setRates(data);
+  }, []);
+  usePoll(load, FX_MS);
+  return { rates: rates.rates, ratesSource: rates.source };
+}
+
 /** Everything the dashboard needs beyond the user's own symbols. */
 export function useMarketData(symbols: string[]) {
   const indexSyms = INDEX_KEYS.map((k) => INDEX_SYMBOLS[k].sym);
   const { quotes, flash } = useQuotes([...symbols, ...indexSyms]);
-  const [rates, setRates] = useState<{ rates: Rates; source: DataSource }>({ rates: SAMPLE_RATES, source: "sample" });
+  const { rates, ratesSource } = useRates();
   const [news, setNews] = useState<NewsResponse | null>(null);
   const [movers, setMovers] = useState<MoversResponse | null>(null);
 
-  const loadRates = useCallback(async () => {
-    const data = await getJSON<{ rates: Rates; source: DataSource }>("/api/fx");
-    if (data) setRates(data);
-  }, []);
   const loadNews = useCallback(async () => {
     const data = await getJSON<NewsResponse>("/api/news");
     if (data) setNews(data);
@@ -126,7 +133,6 @@ export function useMarketData(symbols: string[]) {
     if (data) setMovers(data);
   }, []);
 
-  usePoll(loadRates, FX_MS);
   usePoll(loadNews, NEWS_MS);
   usePoll(loadMovers, MOVERS_MS);
 
@@ -135,5 +141,5 @@ export function useMarketData(symbols: string[]) {
     Quote | null
   >;
 
-  return { quotes, flash, indices, rates: rates.rates, ratesSource: rates.source, news, movers };
+  return { quotes, flash, indices, rates, ratesSource, news, movers };
 }

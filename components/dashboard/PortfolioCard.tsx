@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Icon } from "../Icon";
 import { money, pct, tone } from "@/lib/format";
 import { CURRENCY_SYMBOLS } from "@/lib/sample-data";
@@ -64,7 +65,7 @@ export function PortfolioCard({ totals, currency, rates, ratesSource, onCurrency
           <button className="btn outline"><Icon name="star" size="sm" />Add to Watchlist</button>
           <button className="icon-btn ghost" aria-label="More"><Icon name="more" /></button>
         </div>
-        <button className="fab" aria-label="Open portfolio"><Icon name="arrow" size="lg" /></button>
+        <Link href="/portfolio" className="fab" aria-label="Open portfolio"><Icon name="arrow" size="lg" /></Link>
       </div>
     </article>
   );

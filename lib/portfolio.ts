@@ -1,5 +1,6 @@
 import { toUSD } from "./format";
-import type { AssetClass, Holding, Rates } from "./types";
+import { sampleQuote } from "./sample-data";
+import type { AssetClass, Holding, Quote, Rates } from "./types";
 
 export interface PortfolioTotals {
   value: number;
@@ -46,4 +47,19 @@ export function computeTotals(holdings: Holding[], rates: Rates): PortfolioTotal
     gainByClass,
     dayPctByClass,
   };
+}
+
+/** Live quote if we have one, else sample data, else the given fallback price. */
+export function priceOf(sym: string, quotes: Record<string, Quote>, fallback: number) {
+  const q = quotes[sym] ?? sampleQuote(sym);
+  return q
+    ? { price: q.price, prev: q.prev, source: q.source }
+    : { price: fallback, prev: fallback, source: "sample" as const };
+}
+
+/** Positions priced with the latest quotes (cash is always worth 1). */
+export function priceHoldings(positions: Omit<Holding, "price" | "prev" | "source">[], quotes: Record<string, Quote>): Holding[] {
+  return positions.map((p) =>
+    p.cls === "cash" ? { ...p, price: 1, prev: 1, source: "live" } : { ...p, ...priceOf(p.sym, quotes, p.cost) }
+  );
 }
