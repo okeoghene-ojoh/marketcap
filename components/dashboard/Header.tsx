@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Icon } from "../Icon";
 import { SearchBox } from "../SearchBox";
 import { ThemeToggle } from "../ThemeToggle";
+import { LogoMark } from "../Logo";
 import { useAuth } from "../AuthProvider";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
@@ -27,7 +28,7 @@ export function Header({ notifCount = 0 }: { notifCount?: number }) {
       <Link href="/" className="hello">
         <div className="avatar" aria-hidden="true">{name ? name[0].toUpperCase() : "M"}</div>
         <div>
-          <div className="brand">Marketcap</div>
+          <div className="brand"><LogoMark size={14} />Marketcap</div>
           <h1>{name ? `Hello, ${name}` : "Welcome"}</h1>
         </div>
       </Link>

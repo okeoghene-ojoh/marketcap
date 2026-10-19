@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { LogoMark } from "../Logo";
 import { googleEnabled } from "@/lib/supabase/config";
 
 type Mode = "signin" | "signup" | "reset";
@@ -74,7 +75,7 @@ export function AuthForm({ initialError }: { initialError?: string }) {
 
   return (
     <article className="card auth-card">
-      <Link href="/" className="brand">Marketcap</Link>
+      <Link href="/" className="brand auth-brand"><LogoMark size={36} />Marketcap</Link>
       <h2>{TITLES[mode]}</h2>
 
       {mode !== "reset" && (

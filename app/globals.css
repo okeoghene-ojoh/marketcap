@@ -399,3 +399,8 @@ table.holdings { width: 100%; min-width: 820px; border-collapse: collapse; font-
   .summary-grid { grid-template-columns: 1fr 1fr; }
   .summary-val { font-size: 21px; }
 }
+
+/* Logo */
+.brand { display: flex; align-items: center; gap: 6px; }
+.logo-mark { flex: none; display: block; }
+.auth-brand { gap: 10px; font-size: 14px; color: var(--text); }
