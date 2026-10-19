@@ -29,6 +29,23 @@ export function AllocationCard({ totals, currency, rates, hidden, selected, onSe
     return seg;
   });
 
+  if (!keys.length) {
+    return (
+      <article className="card">
+        <div className="card-head">
+          <div className="title"><span className="title-ic"><Icon name="pie" /></span>Allocation</div>
+        </div>
+        <div className="donut-wrap">
+          <svg className="donut" viewBox="0 0 200 200"><circle cx={100} cy={100} r={R} stroke="var(--soft)" /></svg>
+          <div className="donut-center"><div className="donut-sub">No holdings yet</div></div>
+        </div>
+        <p className="row-sub empty-hint">Tap <b>Add Holding</b> to start tracking your investments.</p>
+      </article>
+    );
+  }
+
+  // Fall back to the biggest class if the selected one isn't held
+  if (!keys.includes(selected)) selected = keys.reduce((a, b) => ((totals.byClass[b] ?? 0) > (totals.byClass[a] ?? 0) ? b : a));
   const selValue = totals.byClass[selected] ?? 0;
 
   // Best performing (non-cash) class today

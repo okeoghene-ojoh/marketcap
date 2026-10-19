@@ -22,6 +22,5 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 export default async function QuotePage({ params }: Params) {
   const overview = await load((await params).symbol);
   if (!overview) notFound();
-  // userName becomes the signed-in user's name in phase 5
-  return <QuoteView overview={overview} userName="Okeoghene" />;
+  return <QuoteView overview={overview} />;
 }

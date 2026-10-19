@@ -1,10 +1,13 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Icon } from "../Icon";
 import { SearchBox } from "../SearchBox";
 import { ThemeToggle } from "../ThemeToggle";
+import { useAuth } from "../AuthProvider";
+import { supabaseBrowser } from "@/lib/supabase/client";
 
 // Only Overview has a page so far; the rest arrive in later phases.
 const TABS = [
@@ -14,21 +17,18 @@ const TABS = [
   { label: "News", href: null },
 ];
 
-interface Props {
-  name: string;
-  notifCount?: number;
-}
-
-export function Header({ name, notifCount = 0 }: Props) {
+export function Header({ notifCount = 0 }: { notifCount?: number }) {
   const pathname = usePathname();
+  const { user, profile } = useAuth();
+  const name = profile?.name || user?.email.split("@")[0] || "";
 
   return (
     <header className="topbar">
       <Link href="/" className="hello">
-        <div className="avatar" aria-hidden="true">{name[0]}</div>
+        <div className="avatar" aria-hidden="true">{name ? name[0].toUpperCase() : "M"}</div>
         <div>
           <div className="brand">Marketcap</div>
-          <h1>Hello, {name}</h1>
+          <h1>{name ? `Hello, ${name}` : "Welcome"}</h1>
         </div>
       </Link>
 
@@ -49,14 +49,56 @@ export function Header({ name, notifCount = 0 }: Props) {
       <div className="actions">
         <SearchBox />
         <ThemeToggle />
-        <button className="pill-btn" aria-label="Notifications">
-          <span className="bell">
-            <Icon name="bell" />
-            {notifCount > 0 && <span className="dot" />}
-          </span>
-          <span>{notifCount}</span>
-        </button>
+        {user && (
+          <button className="pill-btn" aria-label="Notifications">
+            <span className="bell">
+              <Icon name="bell" />
+              {notifCount > 0 && <span className="dot" />}
+            </span>
+            <span>{notifCount}</span>
+          </button>
+        )}
+        <AccountButton />
       </div>
     </header>
+  );
+}
+
+function AccountButton() {
+  const { user, enabled } = useAuth();
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [open]);
+
+  if (!enabled) return null;
+  if (!user) return <Link href="/login" className="btn primary small">Sign in</Link>;
+
+  const signOut = async () => {
+    await supabaseBrowser().auth.signOut();
+    setOpen(false);
+    router.push("/");
+    router.refresh();
+  };
+
+  return (
+    <div className="menu-wrap" ref={ref}>
+      <button className="icon-btn" aria-label="Account menu" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <Icon name="user" />
+      </button>
+      {open && (
+        <div className="menu" role="menu">
+          <div className="menu-email">{user.email}</div>
+          <Link href="/account" role="menuitem" onClick={() => setOpen(false)}>Account settings</Link>
+          <button role="menuitem" onClick={signOut}>Sign out</button>
+        </div>
+      )}
+    </div>
   );
 }

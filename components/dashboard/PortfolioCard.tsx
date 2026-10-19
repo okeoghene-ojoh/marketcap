@@ -15,9 +15,12 @@ interface Props {
   hidden: boolean;
   onToggleHidden: () => void;
   onAddHolding: () => void;
+  /** account data still loading */
+  loading?: boolean;
 }
 
-export function PortfolioCard({ totals, currency, rates, ratesSource, onCurrency, hidden, onToggleHidden, onAddHolding }: Props) {
+export function PortfolioCard({ totals, currency, rates, ratesSource, onCurrency, hidden, onToggleHidden, onAddHolding, loading }: Props) {
+  const masked = hidden || loading;
   return (
     <article className="card hero">
       <div className="hero-head">
@@ -32,7 +35,7 @@ export function PortfolioCard({ totals, currency, rates, ratesSource, onCurrency
         <div className="day-change">
           <div className="label">Today&apos;s change</div>
           <div className={`value ${tone(totals.day)}`}>
-            {hidden ? "••••" : `${money(totals.day, currency, { rates, sign: true })} (${pct(totals.dayPct)})`}
+            {masked ? "••••" : `${money(totals.day, currency, { rates, sign: true })} (${pct(totals.dayPct)})`}
           </div>
         </div>
       </div>
@@ -47,7 +50,9 @@ export function PortfolioCard({ totals, currency, rates, ratesSource, onCurrency
         )}
       </div>
       <div className="balance-row">
-        <div className="balance">{hidden ? `${CURRENCY_SYMBOLS[currency]}••••••` : money(totals.value, currency, { rates })}</div>
+        <div className="balance">
+          {loading ? <span className="loading-text">Loading…</span> : hidden ? `${CURRENCY_SYMBOLS[currency]}••••••` : money(totals.value, currency, { rates })}
+        </div>
         <button className="icon-btn soft" aria-label={hidden ? "Show balance" : "Hide balance"} onClick={onToggleHidden}>
           <Icon name={hidden ? "eye-off" : "eye"} />
         </button>

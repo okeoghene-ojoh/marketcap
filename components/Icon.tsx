@@ -1,6 +1,6 @@
 export type IconName =
   | "search" | "bell" | "moon" | "sun" | "eye" | "eye-off" | "arrow" | "plus" | "star" | "more"
-  | "pie" | "trend" | "list" | "check" | "x" | "news" | "target" | "bolt" | "sparkle";
+  | "pie" | "trend" | "list" | "check" | "x" | "news" | "target" | "bolt" | "sparkle" | "user";
 
 export function Icon({ name, size }: { name: IconName; size?: "sm" | "lg" }) {
   return (
@@ -33,6 +33,7 @@ export function IconSprite() {
         <symbol id="i-news" viewBox="0 0 24 24"><path d="M4 5h13v14a2 2 0 0 0 2 2H6a2 2 0 0 1-2-2Z" /><path d="M17 9h3v10a2 2 0 0 1-2 2" /><path d="M8 9h5M8 13h5M8 17h3" /></symbol>
         <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1" /></symbol>
         <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z" /></symbol>
+        <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></symbol>
         <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 2c.5 4.5 2.5 7.5 10 10-7.5 2.5-9.5 5.5-10 10-.5-4.5-2.5-7.5-10-10 7.5-2.5 9.5-5.5 10-10Z" /></symbol>
       </defs>
     </svg>

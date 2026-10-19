@@ -15,7 +15,7 @@ import type { Currency, NewsResponse, Overview } from "@/lib/types";
 
 const compact = (v: number) => v.toLocaleString("en-US", { notation: "compact", maximumFractionDigits: 2 });
 
-export function QuoteView({ overview, userName }: { overview: Overview; userName: string }) {
+export function QuoteView({ overview }: { overview: Overview }) {
   const { symbol, currency } = overview;
   const { quotes, flash } = useQuotes([symbol]);
   const quote = quotes[symbol] ?? overview.quote;
@@ -37,7 +37,7 @@ export function QuoteView({ overview, userName }: { overview: Overview; userName
 
   return (
     <div className="app">
-      <Header name={userName} />
+      <Header />
 
       <nav className="crumbs" aria-label="Breadcrumb">
         <Link href="/">Overview</Link> <span>/</span> <span>{symbol}</span>
