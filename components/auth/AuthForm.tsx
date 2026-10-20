@@ -101,6 +101,12 @@ export function AuthForm({ initialError }: { initialError?: string }) {
           </label>
         )}
 
+        {mode === "signup" && (
+          <p className="row-sub auth-consent">
+            By creating an account you agree to the <Link href="/terms">Terms</Link> and{" "}
+            <Link href="/privacy">Privacy policy</Link>, and confirm you&apos;re 18 or over.
+          </p>
+        )}
         {error && <p className="auth-error" role="alert">{error}</p>}
         {notice && <p className="auth-notice" role="status">{notice}</p>}
 

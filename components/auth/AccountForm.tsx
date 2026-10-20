@@ -62,6 +62,50 @@ export function AccountForm({ email, name, baseCurrency }: Props) {
           </div>
         </form>
       </article>
+
+      <DeleteAccount />
     </section>
+  );
+}
+
+/** Permanently deletes the account, after the user types DELETE to confirm. */
+function DeleteAccount() {
+  const [confirm, setConfirm] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function onDelete(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (confirm !== "DELETE") return setError("Type DELETE in capitals to confirm.");
+    setBusy(true);
+    setError("");
+    const res = await fetch("/api/account/delete", { method: "POST" });
+    if (!res.ok) {
+      setBusy(false);
+      const body = await res.json().catch(() => ({}));
+      return setError(body.error ?? "Couldn't delete the account. Try again.");
+    }
+    await supabaseBrowser().auth.signOut();
+    window.location.href = "/?deleted=1";
+  }
+
+  return (
+    <article className="card danger-zone">
+      <div className="card-head"><div className="title">Delete account</div></div>
+      <p className="row-sub">
+        This permanently deletes your account and everything saved in it: holdings, watchlists, alerts and
+        notifications. It can&apos;t be undone.
+      </p>
+      <form className="auth-form" onSubmit={onDelete}>
+        <label>
+          Type DELETE to confirm
+          <input value={confirm} onChange={(e) => { setConfirm(e.target.value); setError(""); }} autoComplete="off" />
+        </label>
+        {error && <p className="auth-error" role="alert">{error}</p>}
+        <div className="btns">
+          <button className="btn danger" disabled={busy}>{busy ? "Deleting…" : "Delete my account"}</button>
+        </div>
+      </form>
+    </article>
   );
 }
