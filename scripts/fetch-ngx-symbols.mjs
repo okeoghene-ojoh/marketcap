@@ -19,6 +19,22 @@ const stocks = list
   .map((s) => ({ code: s.Code, name: String(s.Name).replace(/\s+/g, " ").trim() }))
   .sort((a, b) => a.code.localeCompare(b.code));
 
+// A few NGX tickers are also US tickers (NEM = NEM Insurance here, Newmont in the US).
+// The plain ticker stays American; the Nigerian one gets ".NG" (lib/providers/eodhd.ts strips it).
+let clashes = new Set();
+if (process.env.FINNHUB_API_KEY) {
+  const us = await fetch(`https://finnhub.io/api/v1/stock/symbol?exchange=US&token=${encodeURIComponent(process.env.FINNHUB_API_KEY)}`);
+  if (us.ok) clashes = new Set((await us.json()).map((x) => x.symbol));
+  else console.warn(`Couldn't load the US ticker list (HTTP ${us.status}); clashes not checked.`);
+} else {
+  console.warn("No FINNHUB_API_KEY: clashes with US tickers not checked.");
+}
+const renamed = [];
+for (const s of stocks) {
+  if (clashes.has(s.code)) { renamed.push(s.code); s.code = `${s.code}.NG`; }
+}
+if (renamed.length) console.log(`Gave .NG to ${renamed.length} tickers that clash with US ones: ${renamed.join(", ")}`);
+
 if (stocks.length < 20) {
   console.error(`Only ${stocks.length} NGX stocks came back; keeping the current file. (Does your plan include XNSA?)`);
   process.exit(1);
