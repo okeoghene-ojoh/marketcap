@@ -12,7 +12,10 @@ import { usePaper, type PaperPosition } from "@/lib/usePaper";
 import { NGX_SYMBOLS, SYMBOL_NAMES } from "@/lib/sample-data";
 import { money, pct, tone } from "@/lib/format";
 
-const usd = (v: number, sign = false) => money(v, "USD", { native: true, sign });
+// Money amounts (values, totals, gains): whole cents, so rounding crumbs never show as "−$0.0001"
+const usd = (v: number, sign = false) => money(Math.round(v * 100) / 100 || 0, "USD", { native: true, sign, digits: 2 });
+// Prices: extra decimals for coins under $1 (e.g. DOGE)
+const usdPrice = (v: number) => money(v, "USD", { native: true });
 const shares = (q: number) => q.toLocaleString("en-US", { maximumFractionDigits: 6 });
 
 export function PracticeView({ initialSymbol }: { initialSymbol?: string }) {
@@ -121,7 +124,7 @@ export function PracticeView({ initialSymbol }: { initialSymbol?: string }) {
                     <td className="row-sub">{new Date(t.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</td>
                     <td><span className={`side-badge ${t.side}`}>{t.side === "buy" ? "Buy" : "Sell"}</span> <Link href={`/quote/${t.symbol}`} className="row-link-inline"><b>{t.symbol}</b></Link></td>
                     <td className="num">{shares(t.qty)}</td>
-                    <td className="num">{usd(t.price)}</td>
+                    <td className="num">{usdPrice(t.price)}</td>
                     <td className="num">{usd(t.qty * t.price)}</td>
                     <td className={`num ${t.realized === null ? "" : tone(t.realized)}`}>{t.realized === null ? "—" : usd(t.realized, true)}</td>
                   </tr>
@@ -150,8 +153,8 @@ function PositionRow({ p, price, flash, onSell }: { p: PaperPosition; price?: nu
         </Link>
       </td>
       <td className="num">{shares(p.qty)}</td>
-      <td className="num">{usd(p.avgCost)}</td>
-      <td className="num">{price ? usd(price) : "—"}</td>
+      <td className="num">{usdPrice(p.avgCost)}</td>
+      <td className="num">{price ? usdPrice(price) : "—"}</td>
       <td className="num strong">{usd(now * p.qty)}</td>
       <td className={`num ${tone(gain)}`}>{usd(gain, true)}<div className="row-sub">{pct(((now - p.avgCost) / p.avgCost) * 100)}</div></td>
       <td className="actions-cell"><button className="btn outline small" onClick={onSell}>Trade</button></td>
@@ -215,7 +218,7 @@ function TradeTicket({ pick, onPick, price, owned, cash, onTrade }: TicketProps)
             <div className="row-sub">{pick.name}</div>
           </div>
           <div className="num">
-            {price ? usd(price.price) : "…"}
+            {price ? usdPrice(price.price) : "…"}
             {price && <div className={`pct ${tone(price.changePct)}`}>{pct(price.changePct)}</div>}
           </div>
           <button className="chip-x" aria-label="Choose another" onClick={() => { onPick(null); setValue(""); setMsg(null); }}><Icon name="x" size="sm" /></button>
