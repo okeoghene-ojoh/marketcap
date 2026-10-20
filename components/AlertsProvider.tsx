@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "./AuthProvider";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { usePoll } from "@/lib/useMarketData";
@@ -49,6 +49,9 @@ export function AlertsProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [alerts, setAlerts] = useState<PriceAlert[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  // Bumped by every change the user makes; a refresh that started before a change
+  // throws its (now stale) result away instead of overwriting the change.
+  const version = useRef(0);
 
   useEffect(() => {
     if (!user) { setAlerts([]); setNotifications([]); }
@@ -56,11 +59,13 @@ export function AlertsProvider({ children }: { children: React.ReactNode }) {
 
   const refresh = useCallback(async () => {
     if (!user) return;
+    const started = version.current;
     const db = supabaseBrowser();
     const [a, n] = await Promise.all([
       db.from("alerts").select("id, symbol, name, currency, condition, target, active, last_triggered_at, last_price").order("created_at", { ascending: false }),
       db.from("notifications").select("id, symbol, title, body, read, created_at").order("created_at", { ascending: false }).limit(30),
     ]);
+    if (version.current !== started) return; // the user changed something meanwhile
     // Before the alerts SQL has been run these tables don't exist yet: just show nothing
     if (!a.error) setAlerts((a.data as AlertRow[]).map(fromAlertRow));
     if (!n.error) setNotifications((n.data as NoteRow[]).map(fromNoteRow));
@@ -77,31 +82,37 @@ export function AlertsProvider({ children }: { children: React.ReactNode }) {
       unread: notifications.filter((n) => !n.read).length,
       async createAlert(a) {
         if (!user) return null;
+        version.current++;
         const { data, error } = await db()
           .from("alerts")
           .insert({ user_id: user.id, ...a })
           .select("id, symbol, name, currency, condition, target, active, last_triggered_at, last_price")
           .single();
         if (error) { console.error("[alerts] create failed", error); return null; }
-        setAlerts((list) => [fromAlertRow(data as AlertRow), ...list]);
+        const created = fromAlertRow(data as AlertRow);
+        setAlerts((list) => (list.some((x) => x.id === created.id) ? list : [created, ...list]));
         return (data as AlertRow).id;
       },
       async setActive(id, active) {
+        version.current++;
         setAlerts((list) => list.map((x) => (x.id === id ? { ...x, active } : x)));
         const { error } = await db().from("alerts").update({ active }).eq("id", id);
         if (error) { console.error("[alerts] update failed", error); refresh(); }
       },
       async deleteAlert(id) {
+        version.current++;
         setAlerts((list) => list.filter((x) => x.id !== id));
         const { error } = await db().from("alerts").delete().eq("id", id);
         if (error) { console.error("[alerts] delete failed", error); refresh(); }
       },
       async markRead(id) {
+        version.current++;
         setNotifications((list) => list.map((x) => (x.id === id ? { ...x, read: true } : x)));
         const { error } = await db().from("notifications").update({ read: true }).eq("id", id);
         if (error) refresh();
       },
       async markAllRead() {
+        version.current++;
         setNotifications((list) => list.map((x) => ({ ...x, read: true })));
         const { error } = await db().from("notifications").update({ read: true }).eq("read", false);
         if (error) refresh();
