@@ -82,5 +82,5 @@ Claude can do these steps with you: say "commit this and open a pull request".
 - Keep "sample" labels honest: never present sample data as live.
 - Database changes = a new numbered file in `supabase/migrations/`, which the owner
   runs in Supabase.
-- Run `npx tsc --noEmit` before you push.
+- Run `npx tsc --noEmit` and `npm test` before you push.
 - Marketcap shows information, not financial advice.

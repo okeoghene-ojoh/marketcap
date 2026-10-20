@@ -46,6 +46,7 @@ hard to undo.
 - `npm install`: install packages (slow networks: add `--fetch-retries=5`)
 - `npm run dev`: dev server at http://localhost:3000
 - `npx tsc --noEmit`: type-check (do this before every commit)
+- `npm test`: unit tests for money, portfolio, alert and market-hours logic (Vitest; `*.test.ts` next to the code)
 - `npm run build`: production build. **Stop the dev server first**, because both write to `.next`.
 - Deploying = pushing to `main` on GitHub; Vercel builds it in about a minute.
 
@@ -57,6 +58,6 @@ inserts a notification, and emails via Resend. Until a domain is verified in Res
 email only reaches the Resend account owner's address.
 
 ## Roadmap
-Done: dashboard, live data, quote pages and search, accounts, portfolio page, compare,
+Done: dashboard, live data, quote pages and search, accounts, portfolio page, compare, markets, news, legal pages, account deletion, tests,
 logo, price alerts. Next: NGX live feed (e.g. EODHD), polish (SEO, error states, terms
 and privacy pages), verified email domain, optional paper trading and "buy on broker" links.
