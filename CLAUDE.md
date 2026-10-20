@@ -19,8 +19,9 @@ hard to undo.
 ## Where things are
 | Path | What |
 |---|---|
-| `app/` | Pages: `/` dashboard, `/quote/[symbol]`, `/portfolio`, `/compare`, `/login`, `/account` |
-| `app/api/*` | JSON routes: `quotes`, `history`, `news`, `search`, `fx`, `movers`, `cron/check-alerts` |
+| `app/` | Pages: `/` dashboard, `/markets`, `/news`, `/quote/[symbol]`, `/portfolio`, `/compare`, `/login`, `/account`, `/terms`, `/privacy`, `/disclaimer` |
+| `app/api/*` | JSON routes: `quotes`, `history`, `news`, `search`, `fx`, `movers`, `cron/check-alerts`, `account/delete` |
+| `lib/site.ts` | Company name, contact email and jurisdiction used by the legal pages (placeholders to fill in) |
 | `lib/providers/` | **The only code that talks to data providers.** `index.ts` is the facade the app uses. |
 | `lib/sample-data.ts` | Demo portfolio, symbol names, and **sample fallbacks** |
 | `lib/usePortfolio.ts` | Holdings and watchlists store: Supabase when signed in, localStorage when signed out |
@@ -58,6 +59,9 @@ inserts a notification, and emails via Resend. Until a domain is verified in Res
 email only reaches the Resend account owner's address.
 
 ## Roadmap
-Done: dashboard, live data, quote pages and search, accounts, portfolio page, compare, markets, news, legal pages, account deletion, tests,
-logo, price alerts. Next: NGX live feed (e.g. EODHD), polish (SEO, error states, terms
-and privacy pages), verified email domain, optional paper trading and "buy on broker" links.
+Done: dashboard, live data, quote pages and search, accounts, portfolio page, compare,
+markets, news, price alerts, logo, legal pages, account deletion, error/404/loading pages,
+link previews and SEO, unit tests.
+Next: a verified email domain (Resend + Supabase SMTP), filling in `lib/site.ts` and a legal
+review, a live NGX feed (e.g. EODHD), then optional paper trading, "buy on broker" links,
+a portfolio value-over-time chart and CSV import/export.
