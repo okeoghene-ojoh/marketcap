@@ -50,5 +50,9 @@ export function createThemedChart(box: HTMLElement): { chart: IChartApi; dispose
     chart.applyOptions({ layout: { textColor: cssVar("--muted") }, grid: { horzLines: { color: cssVar("--line") } } })
   );
   observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-  return { chart, dispose: () => { observer.disconnect(); chart.remove(); } };
+  // Re-fit the data after a resize (window resized, phone rotated), or a gap is left at the side
+  let disposed = false;
+  const resize = new ResizeObserver(() => requestAnimationFrame(() => { if (!disposed) chart.timeScale().fitContent(); }));
+  resize.observe(box);
+  return { chart, dispose: () => { disposed = true; observer.disconnect(); resize.disconnect(); chart.remove(); } };
 }

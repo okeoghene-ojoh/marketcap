@@ -524,3 +524,11 @@ a.lead-story:hover .lead-title { text-decoration: underline; }
 .csv-preview { max-height: 280px; overflow-y: auto; margin: 10px 0; border: 1px solid var(--line); border-radius: 12px; padding: 0 8px; }
 .csv-preview table.holdings { min-width: 0; }
 .csv-errors { margin: 8px 0; display: grid; gap: 4px; font-size: 13px; }
+
+/* Portfolio value chart */
+.value-chart { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+.value-chart .chart-head { align-items: flex-end; }
+.value-chart .chart-legend { margin-top: 4px; font-size: 15px; }
+.value-box { height: 280px; margin-top: 10px; }
+.value-note { margin: 8px 0 0; font-size: 12px; }
+@media (max-width: 860px) { .value-box { height: 220px; } }

@@ -9,6 +9,7 @@ import { HoldingsTable } from "./HoldingsTable";
 import { EditHoldingDialog } from "./EditHoldingDialog";
 import { WatchlistManager } from "./WatchlistManager";
 import { CsvTools } from "./CsvTools";
+import { ValueChart } from "./ValueChart";
 import { AlertsManager } from "../alerts/AlertsManager";
 import { useQuotes, useRates } from "@/lib/useMarketData";
 import { usePortfolio } from "@/lib/usePortfolio";
@@ -90,6 +91,7 @@ export function PortfolioView() {
           </div>
           <div><div className="label">Holdings</div><div className="summary-val">{loading ? "—" : p.positions.length}</div></div>
         </div>
+        {!loading && holdings.length > 0 && <ValueChart holdings={holdings} rates={rates} currency={currency} hidden={hidden} />}
       </section>
 
       <section className="card">
