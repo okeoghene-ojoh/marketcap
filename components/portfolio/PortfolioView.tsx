@@ -8,6 +8,7 @@ import { Icon } from "../Icon";
 import { HoldingsTable } from "./HoldingsTable";
 import { EditHoldingDialog } from "./EditHoldingDialog";
 import { WatchlistManager } from "./WatchlistManager";
+import { CsvTools } from "./CsvTools";
 import { AlertsManager } from "../alerts/AlertsManager";
 import { useQuotes, useRates } from "@/lib/useMarketData";
 import { usePortfolio } from "@/lib/usePortfolio";
@@ -94,9 +95,12 @@ export function PortfolioView() {
       <section className="card">
         <div className="card-head">
           <div className="title"><span className="title-ic"><Icon name="pie" /></span>Holdings</div>
-          <button className="btn primary small" onClick={() => addRef.current?.showModal()}>
-            <Icon name="plus" size="sm" />Add holding
-          </button>
+          <div className="btns">
+            {!loading && <CsvTools positions={p.positions} onImport={(h) => p.addHolding(h.symbol, h.qty, h.cost, h.name)} />}
+            <button className="btn primary small" onClick={() => addRef.current?.showModal()}>
+              <Icon name="plus" size="sm" />Add holding
+            </button>
+          </div>
         </div>
         {loading ? (
           <p className="row-sub">Loading your portfolio…</p>

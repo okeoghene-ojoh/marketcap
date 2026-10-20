@@ -18,6 +18,7 @@ const TABS = [
   { label: "Markets", href: "/markets" },
   { label: "Portfolio", href: "/portfolio" },
   { label: "Compare", href: "/compare" },
+  { label: "Practice", href: "/practice" },
   { label: "News", href: "/news" },
 ];
 

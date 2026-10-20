@@ -98,6 +98,11 @@ export function QuoteView({ overview }: { overview: Overview }) {
             <Link href={`/compare?s=${symbol},${symbol === "SPY" ? "QQQ" : "SPY"}`} className="btn outline">
               <Icon name="trend" size="sm" />Compare
             </Link>
+            {overview.kind !== "ngx" && (
+              <Link href={`/practice?symbol=${symbol}`} className="btn outline" title="Trade with pretend money">
+                <Icon name="target" size="sm" />Practice trade
+              </Link>
+            )}
             {alertsCtx.enabled ? (
               <button className="btn outline" onClick={() => alertRef.current?.showModal()}>
                 <Icon name="bell" size="sm" />Set alert
