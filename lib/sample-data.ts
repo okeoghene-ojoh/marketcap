@@ -21,6 +21,18 @@ export const INDEX_SYMBOLS: Record<IndexKey, { sym: string; label: string }> = {
   ngx: { sym: "NGXASI", label: "NGX ASI" },
 };
 
+/** US market overview (funds that track each index, since free plans don't carry index values). */
+export const MARKET_INDEXES = [
+  { sym: "SPY", label: "S&P 500" },
+  { sym: "QQQ", label: "NASDAQ-100" },
+  { sym: "DIA", label: "Dow Jones" },
+  { sym: "IWM", label: "Russell 2000" },
+  { sym: "NGXASI", label: "NGX All-Share" },
+];
+
+/** The 11 S&P 500 sector funds (SPDR "XL" ETFs). */
+export const SECTOR_ETFS = ["XLK", "XLF", "XLV", "XLE", "XLY", "XLP", "XLI", "XLB", "XLU", "XLRE", "XLC"];
+
 /** Demo portfolio until accounts (phase 5) store real ones. Prices get replaced by live quotes. */
 export const initialHoldings: Holding[] = [
   { sym: "AAPL", name: "Apple Inc.", ex: "NASDAQ", cls: "us", cur: "USD", qty: 120, cost: 182, price: 231.4, prev: 228.65, source: "sample" },
@@ -67,7 +79,10 @@ export const SYMBOL_NAMES: Record<string, string> = {
   AAPL: "Apple Inc.", NVDA: "NVIDIA Corp.", MSFT: "Microsoft", AMZN: "Amazon", GOOGL: "Alphabet",
   META: "Meta Platforms", TSLA: "Tesla", AMD: "AMD", NFLX: "Netflix", INTC: "Intel", BA: "Boeing",
   DIS: "Disney", PLTR: "Palantir", JPM: "JPMorgan Chase", KO: "Coca-Cola",
-  SPY: "S&P 500 ETF (SPY)", QQQ: "NASDAQ-100 ETF (QQQ)",
+  SPY: "S&P 500 ETF (SPY)", QQQ: "NASDAQ-100 ETF (QQQ)", DIA: "Dow Jones ETF (DIA)", IWM: "Russell 2000 ETF (IWM)",
+  XLK: "Technology", XLF: "Financials", XLV: "Health care", XLE: "Energy", XLY: "Consumer discretionary",
+  XLP: "Consumer staples", XLI: "Industrials", XLB: "Materials", XLU: "Utilities", XLRE: "Real estate", XLC: "Communication",
+  NGXASI: "NGX All-Share Index",
   BTC: "Bitcoin", ETH: "Ethereum", SOL: "Solana", DOGE: "Dogecoin",
   DANGCEM: "Dangote Cement", MTNN: "MTN Nigeria", ZENITH: "Zenith Bank", OANDO: "Oando", GTCO: "GTCO",
 };

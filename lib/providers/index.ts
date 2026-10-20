@@ -13,7 +13,7 @@ import {
   NGX_SYMBOLS, SAMPLE_RATES, SYMBOL_NAMES, sampleArticles, sampleMovers, sampleQuote,
 } from "../sample-data";
 import type {
-  Candle, DataSource, HistoryRange, Mover, MoversResponse, NewsResponse, Overview, Quote, Rates, SearchResult,
+  Candle, DataSource, HistoryRange, Mover, MoversResponse, NewsCategory, NewsResponse, Overview, Quote, Rates, SearchResult,
 } from "../types";
 
 const warn = (what: string, err: unknown) =>
@@ -58,10 +58,10 @@ export async function getQuotes(symbols: string[]): Promise<Record<string, Quote
   return out;
 }
 
-export async function getNews(symbol?: string): Promise<NewsResponse> {
+export async function getNews(symbol?: string, category: NewsCategory = "general", limit = 12): Promise<NewsResponse> {
   if (hasFinnhub()) {
     try {
-      const articles = symbol ? await finnhubCompanyNews(symbol) : await finnhubMarketNews();
+      const articles = symbol ? await finnhubCompanyNews(symbol, limit) : await finnhubMarketNews(limit, category);
       return { articles, source: "live" };
     } catch (e) {
       warn("news", e);

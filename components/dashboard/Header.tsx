@@ -12,13 +12,13 @@ import { useAlerts } from "../AlertsProvider";
 import { timeAgo } from "@/lib/format";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
-// Markets and News pages arrive in later phases.
+// Main navigation; every tab now has a page.
 const TABS = [
   { label: "Overview", href: "/" },
-  { label: "Markets", href: null },
+  { label: "Markets", href: "/markets" },
   { label: "Portfolio", href: "/portfolio" },
   { label: "Compare", href: "/compare" },
-  { label: "News", href: null },
+  { label: "News", href: "/news" },
 ];
 
 export function Header({ notifCount = 0 }: { notifCount?: number }) {

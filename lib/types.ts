@@ -59,7 +59,12 @@ export interface Article {
   image?: string;
   /** epoch ms */
   time: number;
+  /** related ticker(s), when the provider says */
+  related?: string;
 }
+
+export const NEWS_CATEGORIES = ["general", "crypto", "forex", "merger"] as const;
+export type NewsCategory = (typeof NEWS_CATEGORIES)[number];
 
 export interface NewsResponse {
   articles: Article[];

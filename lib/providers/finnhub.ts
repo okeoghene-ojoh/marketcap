@@ -30,7 +30,7 @@ export async function finnhubQuote(symbol: string): Promise<Quote | null> {
   };
 }
 
-interface FinnhubNews { id: number; headline: string; source: string; url: string; image: string; datetime: number }
+interface FinnhubNews { id: number; headline: string; source: string; url: string; image: string; datetime: number; related?: string }
 
 const toArticle = (n: FinnhubNews): Article => ({
   id: String(n.id),
@@ -39,10 +39,12 @@ const toArticle = (n: FinnhubNews): Article => ({
   url: n.url,
   image: n.image || undefined,
   time: n.datetime * 1000,
+  related: n.related || undefined,
 });
 
-export async function finnhubMarketNews(limit = 12): Promise<Article[]> {
-  const list = await getJSON<FinnhubNews[]>(url("/news", { category: "general" }), 300);
+/** category: general | crypto | forex | merger (Finnhub's market-news categories) */
+export async function finnhubMarketNews(limit = 12, category = "general"): Promise<Article[]> {
+  const list = await getJSON<FinnhubNews[]>(url("/news", { category }), 300);
   return list.filter((n) => n.headline && n.url).slice(0, limit).map(toArticle);
 }
 

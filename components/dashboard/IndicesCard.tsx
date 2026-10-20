@@ -4,13 +4,8 @@ import { useEffect, useState } from "react";
 import { Icon } from "../Icon";
 import { changePct, num, pct } from "@/lib/format";
 import { INDEX_SYMBOLS } from "@/lib/sample-data";
+import { isUSMarketOpen } from "@/lib/marketHours";
 import type { IndexKey, Quote } from "@/lib/types";
-
-function isUSMarketOpen() {
-  const ny = new Date(new Date().toLocaleString("en-US", { timeZone: "America/New_York" }));
-  const mins = ny.getHours() * 60 + ny.getMinutes();
-  return ny.getDay() >= 1 && ny.getDay() <= 5 && mins >= 570 && mins < 960;
-}
 
 export function IndicesCard({ indices }: { indices: Record<IndexKey, Quote | null> }) {
   // Computed on the client only, so server and browser render the same HTML.
