@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Icon } from "../Icon";
 import { SearchBox } from "../SearchBox";
 import { TickerLogo } from "../dashboard/TickerLogo";
-import { changePct, money, pct, tone } from "@/lib/format";
+import { changePct, money, pct, tone , sourceNote } from "@/lib/format";
 import { priceOf } from "@/lib/portfolio";
 import type { Watchlist } from "@/lib/usePortfolio";
 import type { Flash, Quote } from "@/lib/types";
@@ -125,7 +125,7 @@ export function WatchlistManager({ watchlists, quotes, flash, onAdd, onRemove, o
                     <TickerLogo sym={w.sym} cur={w.cur} />
                     <div className="meta">
                       <div className="row-title">{w.name}</div>
-                      <div className="row-sub">{w.sym}{w.ex ? ` · ${w.ex}` : ""}{p.source === "sample" ? " · sample" : ""}</div>
+                      <div className="row-sub">{w.sym}{w.ex ? ` · ${w.ex}` : ""}{sourceNote(p.source)}</div>
                     </div>
                     <div className="num">
                       {p.price ? money(p.price, w.cur, { native: true }) : "—"}

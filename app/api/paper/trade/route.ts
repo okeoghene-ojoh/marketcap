@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
   const side = body?.side;
   if (!symbol) return jsonError("Pick a valid symbol.", 400);
   if (side !== "buy" && side !== "sell") return jsonError("Choose buy or sell.", 400);
-  if (NGX_SYMBOLS.includes(symbol)) return jsonError("NGX stocks can't be traded yet: their prices are sample data.", 400);
+  if (NGX_SYMBOLS.includes(symbol)) return jsonError("NGX stocks are priced in naira, and practice trading is in dollars, so they can't be practice-traded yet.", 400);
 
   const quote = (await getQuotes([symbol]))[symbol];
   if (!quote || quote.source !== "live") return jsonError(`No live price for ${symbol} right now. Try again shortly.`, 400);

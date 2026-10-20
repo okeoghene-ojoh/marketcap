@@ -9,6 +9,7 @@ import {
 import { hasTwelveData, twelveDataHistory } from "./twelvedata";
 import { coingeckoMarket, coingeckoQuotes, CRYPTO_SYMBOLS, isCrypto } from "./coingecko";
 import { fxRates } from "./fx";
+import { eodhdHistory, eodhdQuotes, hasEodhd } from "./eodhd";
 import {
   NGX_SYMBOLS, SAMPLE_RATES, SYMBOL_NAMES, sampleArticles, sampleMovers, sampleQuote,
 } from "../sample-data";
@@ -25,6 +26,7 @@ export async function getQuotes(symbols: string[]): Promise<Record<string, Quote
   const out: Record<string, Quote> = {};
   const crypto = symbols.filter(isCrypto);
   const stocks = symbols.filter((s) => !isCrypto(s) && !isNGX(s));
+  const ngx = symbols.filter(isNGX);
 
   const tasks: Promise<void>[] = [];
 
@@ -33,6 +35,14 @@ export async function getQuotes(symbols: string[]): Promise<Record<string, Quote
       coingeckoQuotes(crypto)
         .then((q) => { Object.assign(out, q); })
         .catch((e) => warn("crypto quotes", e))
+    );
+  }
+
+  if (ngx.length && hasEodhd()) {
+    tasks.push(
+      eodhdQuotes(ngx)
+        .then((q) => { Object.assign(out, q); })
+        .catch((e) => warn("NGX quotes", e))
     );
   }
 
@@ -48,7 +58,7 @@ export async function getQuotes(symbols: string[]): Promise<Record<string, Quote
 
   await Promise.all(tasks);
 
-  // Anything still missing (NGX, no key, provider error) falls back to sample data
+  // Anything still missing (no key, provider error, no trades yet) falls back to sample data
   for (const s of symbols) {
     if (!out[s]) {
       const q = sampleQuote(s);
@@ -95,6 +105,14 @@ export async function searchSymbols(q: string): Promise<SearchResult[]> {
 }
 
 export async function getHistory(symbol: string, range: HistoryRange): Promise<{ candles: Candle[]; source: DataSource }> {
+  if (isNGX(symbol) && hasEodhd()) {
+    try {
+      const candles = await eodhdHistory(symbol, range);
+      if (candles.length > 1) return { candles, source: "delayed" };
+    } catch (e) {
+      warn(`NGX history ${symbol}`, e);
+    }
+  }
   if (hasTwelveData() && !isNGX(symbol)) {
     try {
       const candles = await twelveDataHistory(isCrypto(symbol) ? `${symbol}/USD` : symbol, range);
@@ -140,7 +158,16 @@ export async function getOverview(symbol: string): Promise<Overview | null> {
   };
 
   if (isNGX(symbol)) {
-    return { ...base, kind: "ngx", exchange: "NGX", currency: "NGN" };
+    // 52-week range from a year of daily closes (EODHD's quote has no fundamentals)
+    let high52: number | undefined, low52: number | undefined;
+    if (hasEodhd() && quote.source !== "sample") {
+      const year = await eodhdHistory(symbol, "1Y").catch((e) => { warn(`NGX 52-week ${symbol}`, e); return []; });
+      if (year.length) {
+        high52 = Math.max(...year.map((c) => c.high ?? c.close));
+        low52 = Math.min(...year.map((c) => c.low ?? c.close));
+      }
+    }
+    return { ...base, kind: "ngx", exchange: "NGX", currency: "NGN", stats: { ...base.stats, high52, low52 } };
   }
 
   if (isCrypto(symbol)) {

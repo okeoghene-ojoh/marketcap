@@ -64,7 +64,7 @@ export function QuoteView({ overview }: { overview: Overview }) {
               <h2 className="quote-name">{overview.name}</h2>
               <div className="row-sub">
                 {symbol}{overview.exchange ? ` · ${overview.exchange}` : ""}
-                {quote.source === "sample" ? " · sample data" : overview.kind === "crypto" ? " · live" : " · real-time"}
+                {quote.source === "sample" ? " · sample data" : quote.source === "delayed" ? " · delayed prices" : overview.kind === "crypto" ? " · live" : " · real-time"}
               </div>
             </div>
           </div>
@@ -261,7 +261,9 @@ function AboutCard({ overview: o }: { overview: Overview }) {
       </a>
     )]);
   }
-  if (o.kind === "ngx") rows.push(["Data", "NGX prices are sample data until an NGX feed is connected."]);
+  if (o.kind === "ngx") rows.push(["Data", o.source === "sample"
+    ? "NGX prices are sample data until the Nigerian price feed is connected."
+    : "Delayed NGX prices from EODHD. The NGX trades 10:00–14:20 Lagos time, Monday to Friday."]);
   if (!rows.length) return null;
   return (
     <article className="card">

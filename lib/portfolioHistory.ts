@@ -38,7 +38,7 @@ export function computeValueSeries(
 
   for (const h of holdings) {
     const hist = histories[h.sym];
-    if (!hist || hist.source !== "live" || hist.candles.length < 2) {
+    if (!hist || hist.source === "sample" || hist.candles.length < 2) {
       estimated.push(h.sym);
       continue;
     }

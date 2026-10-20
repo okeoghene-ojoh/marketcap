@@ -7,6 +7,7 @@ $envFile = Join-Path (Split-Path $PSScriptRoot -Parent) '.env.local'
 $settings = @(
   @{ Name = 'FINNHUB_API_KEY'; Prompt = 'Finnhub API key'; Secret = $true },
   @{ Name = 'TWELVEDATA_API_KEY'; Prompt = 'Twelve Data API key'; Secret = $true },
+  @{ Name = 'EODHD_API_KEY'; Prompt = 'EODHD API key (Nigerian prices)'; Secret = $true },
   @{ Name = 'NEXT_PUBLIC_SUPABASE_URL'; Prompt = 'Supabase Project URL (https://....supabase.co)'; Secret = $false },
   @{ Name = 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY'; Prompt = 'Supabase publishable (anon) key'; Secret = $true },
   @{ Name = 'SUPABASE_SECRET_KEY'; Prompt = 'Supabase SECRET key (sb_secret_...)'; Secret = $true },

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Icon } from "../Icon";
-import { changePct, num, pct } from "@/lib/format";
+import { changePct, num, pct , sourceNote } from "@/lib/format";
 import { INDEX_SYMBOLS } from "@/lib/sample-data";
 import { isUSMarketOpen } from "@/lib/marketHours";
 import type { IndexKey, Quote } from "@/lib/types";
@@ -30,7 +30,7 @@ export function IndicesCard({ indices }: { indices: Record<IndexKey, Quote | nul
         <button className="icon-btn lime-more" aria-label="More"><Icon name="more" /></button>
       </div>
       <div className="label dark">
-        {INDEX_SYMBOLS.spx.label}{spx?.source === "sample" ? " · sample" : ""}
+        {INDEX_SYMBOLS.spx.label}{sourceNote(spx?.source)}
       </div>
       <div className="index-row">
         <div className="index-val">{spx ? num(spx.price) : "—"}</div>
@@ -48,7 +48,7 @@ function IndexTile({ label, quote }: { label: string; quote: Quote | null }) {
   return (
     <div className="tile">
       <div className="tile-top">
-        <span>{label}{quote?.source === "sample" ? " · sample" : ""}</span>
+        <span>{label}{sourceNote(quote?.source)}</span>
         {quote && <span className="tile-chg">{pct(changePct(quote.price, quote.prev))}</span>}
       </div>
       <div className="tile-val"><Icon name="trend" size="sm" /><span>{quote ? num(quote.price) : "—"}</span></div>

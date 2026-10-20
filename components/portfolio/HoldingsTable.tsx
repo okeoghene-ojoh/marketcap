@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Icon } from "../Icon";
 import { TickerLogo } from "../dashboard/TickerLogo";
-import { changePct, money, pct, toUSD, tone } from "@/lib/format";
+import { changePct, money, pct, toUSD, tone , sourceNote } from "@/lib/format";
 import type { Currency, Flash, Holding, Rates } from "@/lib/types";
 
 interface Props {
@@ -54,7 +54,7 @@ export function HoldingsTable({ holdings, totalValueUSD, currency, rates, hidden
                       <TickerLogo sym={h.sym} cur={h.cur} />
                       <div>
                         <div className="row-title">{h.sym}</div>
-                        <div className="row-sub">{h.name}{h.source === "sample" ? " · sample" : ""}</div>
+                        <div className="row-sub">{h.name}{sourceNote(h.source)}</div>
                       </div>
                     </Link>
                   )}

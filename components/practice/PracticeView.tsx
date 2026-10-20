@@ -185,7 +185,7 @@ function TradeTicket({ pick, onPick, price, owned, cash, onTrade }: TicketProps)
   const total = price && n > 0 ? (mode === "qty" ? n * price.price : n) : 0;
   const problem =
     !pick ? null
-    : blocked ? "NGX prices are sample data, so they can't be traded yet."
+    : blocked ? "NGX stocks are priced in naira, and practice trading is in dollars, so they can't be practice-traded yet."
     : !price ? "Getting the live price…"
     : !live ? "No live price right now, so trading is paused for this symbol."
     : side === "buy" && total > cash ? `That's more than your ${usd(cash)} of cash.`

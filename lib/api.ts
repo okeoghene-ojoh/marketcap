@@ -10,7 +10,7 @@ export function cachedJson(data: unknown, maxAge: number) {
 }
 
 /** Cache live data normally, but sample fallbacks only briefly so a provider hiccup isn't pinned in the CDN. */
-export const ttlFor = (source: DataSource, liveSeconds: number) => (source === "live" ? liveSeconds : 30);
+export const ttlFor = (source: DataSource, liveSeconds: number) => (source === "sample" ? 30 : liveSeconds);
 
 export const badRequest = (message: string) => NextResponse.json({ error: message }, { status: 400 });
 

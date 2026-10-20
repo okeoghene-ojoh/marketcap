@@ -2,6 +2,7 @@
 // The fallback is used when an API key is missing, a provider fails,
 // or there's no free feed (NGX), and is always labelled "sample" in the UI.
 import type { AssetClass, Currency, Holding, IndexKey, Mover, Quote, Rates } from "./types";
+import { NGX_LIST } from "./ngx-symbols";
 
 export const SAMPLE_RATES: Rates = { USD: 1, NGN: 1535, EUR: 0.92 };
 export const CURRENCY_SYMBOLS: Record<Currency, string> = { USD: "$", NGN: "₦", EUR: "€" };
@@ -53,7 +54,7 @@ export const CRYPTO_IDS: Record<string, string> = {
 };
 
 /** NGX has no free live feed yet; these always come from sample data. */
-export const NGX_SYMBOLS = ["DANGCEM", "MTNN", "ZENITH", "OANDO", "GTCO", "NGXASI"];
+export const NGX_SYMBOLS = [...NGX_LIST.map((s) => s.code), "NGXASI"];
 
 // [price, previous close]
 const SAMPLE_PRICES: Record<string, [number, number]> = {
@@ -63,8 +64,8 @@ const SAMPLE_PRICES: Record<string, [number, number]> = {
   PLTR: [41.2, 38.6], JPM: [212.5, 210.9], KO: [69.8, 70.1],
   SPY: [580.1, 575.3], QQQ: [495.2, 491.6],
   BTC: [67250, 65900], ETH: [2610, 2580], SOL: [152.3, 146.3], DOGE: [0.112, 0.1144],
-  DANGCEM: [480, 478], MTNN: [210, 212], ZENITH: [38.5, 36.7], OANDO: [61, 63.8], GTCO: [52.4, 51.9],
-  NGXASI: [98410.3, 98710.2],
+  DANGCEM: [480, 478], MTNN: [210, 212], ZENITHBANK: [38.5, 36.7], OANDO: [61, 63.8], GTCO: [52.4, 51.9],
+  NGXASI: [245278.3, 246010.1],
 };
 
 export function sampleQuote(symbol: string): Quote | null {
@@ -76,6 +77,7 @@ export function sampleQuote(symbol: string): Quote | null {
 
 /** Names for the movers universe (quote APIs return prices only). */
 export const SYMBOL_NAMES: Record<string, string> = {
+  ...Object.fromEntries(NGX_LIST.map((s) => [s.code, s.name])),
   AAPL: "Apple Inc.", NVDA: "NVIDIA Corp.", MSFT: "Microsoft", AMZN: "Amazon", GOOGL: "Alphabet",
   META: "Meta Platforms", TSLA: "Tesla", AMD: "AMD", NFLX: "Netflix", INTC: "Intel", BA: "Boeing",
   DIS: "Disney", PLTR: "Palantir", JPM: "JPMorgan Chase", KO: "Coca-Cola",
@@ -84,13 +86,13 @@ export const SYMBOL_NAMES: Record<string, string> = {
   XLP: "Consumer staples", XLI: "Industrials", XLB: "Materials", XLU: "Utilities", XLRE: "Real estate", XLC: "Communication",
   NGXASI: "NGX All-Share Index",
   BTC: "Bitcoin", ETH: "Ethereum", SOL: "Solana", DOGE: "Dogecoin",
-  DANGCEM: "Dangote Cement", MTNN: "MTN Nigeria", ZENITH: "Zenith Bank", OANDO: "Oando", GTCO: "GTCO",
+  DANGCEM: "Dangote Cement", MTNN: "MTN Nigeria", ZENITHBANK: "Zenith Bank", OANDO: "Oando", GTCO: "GTCO",
 };
 
 export const sampleMovers: { gainers: Mover[]; losers: Mover[] } = {
   gainers: [
     { sym: "PLTR", name: "Palantir", price: 41.2, pct: 6.8 },
-    { sym: "ZENITH", name: "Zenith Bank", price: 38.5, pct: 4.9, cur: "NGN" },
+    { sym: "ZENITHBANK", name: "Zenith Bank", price: 38.5, pct: 4.9, cur: "NGN" },
     { sym: "SOL", name: "Solana", price: 152.3, pct: 4.1 },
     { sym: "NVDA", name: "NVIDIA Corp.", price: 138.2, pct: 3.1 },
   ],

@@ -42,7 +42,7 @@ export function ValueChart({ holdings, rates, currency, hidden }: Props) {
         try {
           const r = await fetch(`/api/history?symbol=${encodeURIComponent(s)}&range=${range}`);
           const d: Series = await r.json();
-          if (r.ok && d.source === "live") cache.current.set(k, d);
+          if (r.ok && d.source !== "sample") cache.current.set(k, d);
           return [s, r.ok ? d : undefined] as const;
         } catch {
           return [s, undefined] as const;

@@ -59,7 +59,7 @@ export function PriceChart({ symbol, formatPrice }: Props) {
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
       .then((d: Series) => {
         if (cancelled) return;
-        if (d.source === "live") cache.current.set(range, d); // retry sample fallbacks next time
+        if (d.source !== "sample") cache.current.set(range, d); // retry sample fallbacks next time
         setData(d);
       })
       .catch(() => { if (!cancelled) setError(true); });

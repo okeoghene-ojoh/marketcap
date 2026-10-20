@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Icon } from "../Icon";
 import { TickerLogo } from "./TickerLogo";
-import { changePct, money, pct, tone } from "@/lib/format";
+import { changePct, money, pct, tone , sourceNote } from "@/lib/format";
 import type { WatchEntry } from "@/lib/usePortfolio";
 import type { DataSource, Flash } from "@/lib/types";
 
@@ -49,7 +49,7 @@ export function WatchlistCard({ items, flash, alert, onDismissAlert }: Props) {
                 <div className="meta">
                   <div className="row-title">{h.name}</div>
                   <div className="row-sub">
-                    {h.sym}{h.ex ? ` · ${h.ex}` : ""}{h.source === "sample" ? " · sample" : ""}
+                    {h.sym}{h.ex ? ` · ${h.ex}` : ""}{sourceNote(h.source)}
                   </div>
                 </div>
                 <div className="num">

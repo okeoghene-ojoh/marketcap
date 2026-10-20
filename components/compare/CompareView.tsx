@@ -48,7 +48,7 @@ export function CompareView({ initialSymbols, initialRange }: { initialSymbols: 
         .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
         .then((d: Series) => {
           if (cancelled) return;
-          if (d.source === "live") cache.current.set(key, d); // sample fallbacks are retried next time
+          if (d.source !== "sample") cache.current.set(key, d); // sample fallbacks are retried next time
           setData((prev) => ({ ...prev, [key]: d }));
         })
         .catch(() => { if (!cancelled) setData((prev) => ({ ...prev, [key]: "error" })); });

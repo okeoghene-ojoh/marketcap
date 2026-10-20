@@ -25,6 +25,10 @@ export const num = (v: number) => v.toLocaleString("en-US", { minimumFractionDig
 export const tone = (v: number) => (v >= 0 ? "pos" : "neg");
 export const changePct = (price: number, prev: number) => ((price - prev) / prev) * 100;
 
+/** " · sample" / " · delayed" after a symbol, so data is always labelled honestly ("" when live) */
+export const sourceNote = (source?: "live" | "delayed" | "sample") =>
+  source === "sample" ? " · sample" : source === "delayed" ? " · delayed" : "";
+
 export function timeAgo(ms: number, now = Date.now()) {
   const mins = Math.max(0, Math.round((now - ms) / 60_000));
   if (mins < 1) return "just now";

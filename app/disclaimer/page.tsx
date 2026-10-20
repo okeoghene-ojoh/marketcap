@@ -19,8 +19,8 @@ export default function DisclaimerPage() {
       <p>
         Market data comes from third-party providers and may be delayed, incomplete or occasionally wrong. Some values
         are approximations: for example, index levels shown via funds that track them (such as SPY for the S&amp;P 500).
-        Anything labelled <b>“sample”</b> is demonstration data, not a real price. This currently includes Nigerian
-        Exchange (NGX) prices. Exchange rates update about once a day.
+        Anything labelled <b>“sample”</b> is demonstration data, not a real price. Nigerian Exchange (NGX) prices are delayed, and are sample data whenever the Nigerian feed is
+        unavailable. Exchange rates update about once a day.
       </p>
 
       <h2>Alerts aren&apos;t guaranteed</h2>

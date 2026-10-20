@@ -8,7 +8,7 @@ import { Icon } from "../Icon";
 import { getJSON, usePoll, useQuotes, useRates } from "@/lib/useMarketData";
 import { isUSMarketOpen } from "@/lib/marketHours";
 import { CRYPTO_IDS, MARKET_INDEXES, SECTOR_ETFS, SYMBOL_NAMES } from "@/lib/sample-data";
-import { money, num, pct, tone } from "@/lib/format";
+import { money, num, pct, tone , sourceNote } from "@/lib/format";
 import type { Mover, MoversResponse, Quote } from "@/lib/types";
 
 const CRYPTO = Object.keys(CRYPTO_IDS).slice(0, 6);
@@ -64,7 +64,7 @@ export function MarketsView() {
             <Link key={sym} href={`/quote/${sym}`} className="sector-tile" style={q ? { background: heat(q.changePct) } : undefined}>
               <span className="sector-name">{SYMBOL_NAMES[sym] ?? sym}</span>
               <span className="sector-pct">{q ? pct(q.changePct) : "—"}</span>
-              <span className="row-sub">{sym}{q?.source === "sample" ? " · sample" : ""}</span>
+              <span className="row-sub">{sym}{sourceNote(q?.source)}</span>
             </Link>
           ))}
         </div>
@@ -102,7 +102,7 @@ export function MarketsView() {
           <p className="row-sub">
             Index values come from funds that track each index (e.g. SPY for the S&amp;P 500), because free data plans
             don&apos;t include the indexes themselves. Movers are ranked from a list of popular stocks and coins.
-            NGX prices are sample data until a Nigerian feed is connected.
+            NGX prices are delayed (from EODHD), or sample data where marked.
           </p>
         </article>
       </section>
@@ -115,7 +115,7 @@ export function MarketsView() {
 function IndexTile({ sym, label, q }: { sym: string; label: string; q?: Quote }) {
   return (
     <Link href={`/quote/${sym}`} className="card index-tile">
-      <div className="row-sub">{label}{q?.source === "sample" ? " · sample" : ""}</div>
+      <div className="row-sub">{label}{sourceNote(q?.source)}</div>
       <div className="index-tile-val">{q ? num(q.price) : "—"}</div>
       <div className={`index-tile-chg ${q ? tone(q.changePct) : ""}`}>
         {q ? `${q.price - q.prev >= 0 ? "+" : "−"}${num(Math.abs(q.price - q.prev))} (${pct(q.changePct)})` : "…"}
@@ -132,7 +132,7 @@ function QuoteRow({ sym, q }: { sym: string; q?: Quote }) {
         <TickerLogo sym={sym} />
         <div className="meta">
           <div className="row-title">{SYMBOL_NAMES[sym] ?? sym}</div>
-          <div className="row-sub">{sym}{q?.source === "sample" ? " · sample" : ""}</div>
+          <div className="row-sub">{sym}{sourceNote(q?.source)}</div>
         </div>
         <div className="num">
           {q ? money(q.price, "USD", { native: true }) : "—"}
