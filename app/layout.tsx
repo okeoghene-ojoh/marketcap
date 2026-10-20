@@ -5,13 +5,22 @@ import { AuthProvider } from "@/components/AuthProvider";
 import { AlertsProvider } from "@/components/AlertsProvider";
 import { SiteFooter } from "@/components/SiteFooter";
 import { getAuth } from "@/lib/supabase/server";
+import { SITE } from "@/lib/site";
 import "./globals.css";
 
 const urbanist = Urbanist({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-urbanist" });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE.url),
   title: "Marketcap",
-  description: "Live prices, market news and your portfolio in one place.",
+  description: "Live prices, market news and your portfolio in one place: US stocks, crypto, NGX and naira exchange rates.",
+  openGraph: {
+    type: "website",
+    siteName: "Marketcap",
+    title: "Marketcap",
+    description: "Live prices, market news and your portfolio in one place.",
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 // Sets the theme before first paint so dark mode doesn't flash.
