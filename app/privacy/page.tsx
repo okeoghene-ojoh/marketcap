@@ -19,9 +19,13 @@ export default function PrivacyPage() {
         <li><b>Account details:</b> your email address, name, password (stored only as a secure hash by our login provider) and your default currency.</li>
         <li><b>What you save:</b> holdings (symbols, shares, buy price and date), watchlists, price alerts and the notifications they create.</li>
         <li><b>Technical data:</b> cookies that keep you signed in, and your IP address and browser details, which our hosting provider processes to deliver the site and protect it from abuse.</li>
+        <li>
+          <b>Visit statistics:</b> anonymous counts of page views, plus the referring site, country and device type,
+          collected by Vercel Web Analytics without cookies and without identifying you.
+        </li>
         <li><b>Stored in your browser only:</b> your light/dark theme and, if you aren&apos;t signed in, a demo portfolio. These never leave your device.</li>
       </ul>
-      <p>We don&apos;t sell your data, show ads, or use advertising trackers.</p>
+      <p>We don&apos;t sell your data, show ads, or use advertising or tracking cookies.</p>
 
       <h2>Why we use it</h2>
       <ul>
@@ -33,7 +37,7 @@ export default function PrivacyPage() {
       <h2>Who processes it for us</h2>
       <ul>
         <li><b>Supabase</b>: login and database (your account and saved data).</li>
-        <li><b>Vercel</b>: website hosting.</li>
+        <li><b>Vercel</b>: website hosting and anonymous visit statistics.</li>
         <li><b>Resend</b>: sending emails.</li>
         <li>
           <b>Market data providers</b> (Finnhub, Twelve Data, CoinGecko, ExchangeRate-API, Binance): we request prices

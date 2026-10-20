@@ -4,6 +4,7 @@ import { IconSprite } from "@/components/Icon";
 import { AuthProvider } from "@/components/AuthProvider";
 import { AlertsProvider } from "@/components/AlertsProvider";
 import { SiteFooter } from "@/components/SiteFooter";
+import Script from "next/script";
 import { getAuth } from "@/lib/supabase/server";
 import { SITE } from "@/lib/site";
 import "./globals.css";
@@ -38,6 +39,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <AuthProvider user={user} profile={profile}>
           <AlertsProvider>{children}</AlertsProvider>
           <SiteFooter />
+          {/* Vercel Web Analytics (anonymous page-view counts, no cookies), via Vercel's plain-script install.
+              Served by Vercel on the live site only, so it's skipped in local development. */}
+          {process.env.NODE_ENV === "production" && <Script src="/_vercel/insights/script.js" strategy="afterInteractive" />}
         </AuthProvider>
       </body>
     </html>
